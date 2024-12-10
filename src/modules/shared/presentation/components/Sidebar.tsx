@@ -1,25 +1,21 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  FaBox,
-  FaUsers,
-  FaClipboardList,
-  FaStore,
+import { NavLink } from 'react-router-dom';
+import { 
+  FaBars, 
+  FaUsers, 
+  FaList, 
+  FaClipboardList, 
+  FaBox, 
+  FaStore, 
   FaMapMarkerAlt,
-  FaList,
-  FaSignOutAlt,
-  FaBars
+  FaSignOutAlt 
 } from 'react-icons/fa';
-import './Sidebar.css';
+import '../style/Sidebar.css';
+import { useAuth } from '../../../auth/presentation/context/AuthContext';
 
 function Sidebar() {
-  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const handleLogout = () => {
-    // Add logout logic here
-    navigate('/');
-  };
+  const { logout } = useAuth();
 
   return (
     <div className={`sidebar bg-dark text-white d-flex flex-column ${isCollapsed ? 'collapsed' : ''}`}>
@@ -53,16 +49,17 @@ function Sidebar() {
         <NavLink to="/dashboard/store-locations" className="sidebar-item">
           <FaMapMarkerAlt className="me-2" /> {!isCollapsed && 'Store Locations'}
         </NavLink>
-
       </nav>
 
-      <hr className="border-secondary mx-3" />
-      <button
-        onClick={handleLogout}
-        className="sidebar-item btn btn-link text-white text-decoration-none text-start"
-      >
-        <FaSignOutAlt className="me-2" /> {!isCollapsed && 'Logout'}
-      </button>
+      <div className="mt-auto">
+        <hr className="border-secondary mx-3 my-0" />
+        <button 
+          onClick={logout}
+          className="sidebar-item w-100 btn btn-link text-white text-decoration-none text-start"
+        >
+          <FaSignOutAlt className="me-2" /> {!isCollapsed && 'Logout'}
+        </button>
+      </div>
     </div>
   );
 }
