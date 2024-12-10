@@ -1,0 +1,38 @@
+.sidebar {
+  width: 250px;
+  min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 70px;
+}
+
+.sidebar-item {
+  padding: 0.8rem 1.5rem;
+  display: flex;
+  align-items: center;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.sidebar-item.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.burger-btn {
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.burger-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+} 
