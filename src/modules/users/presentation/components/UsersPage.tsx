@@ -6,8 +6,7 @@ const UsersPage: React.FC = () => {
       <h1>Users Management</h1>
       <div className="card mt-4">
         <div className="card-body">
-          <p>Users list will be implemented here</p>
-          <p>STO JE OVO SVEGA mi </p>
+          <p>Users list will be implemented here </p>
         </div>
       </div>
     </div>

@@ -62,7 +62,7 @@ function Login() {
               <input
                 type={showPassword ? "text" : "password"}
                 className="form-control"
-                placeholder="Tvoja lozinka TEST"
+                placeholder="Tvoja lozinka"
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
