@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const BASE_URL = 'https://cijene-me-api.onrender.com';
+export const BASE_URL = '';
 
 export const api = axios.create({
   baseURL: BASE_URL,
