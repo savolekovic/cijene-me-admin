@@ -168,9 +168,6 @@ const UsersPage: React.FC = () => {
     <div className="container-fluid p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Users Management</h1>
-        <button className="btn btn-primary">
-          Add New User
-        </button>
       </div>
 
       <div className="card">
