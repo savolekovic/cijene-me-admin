@@ -20,6 +20,8 @@ const UsersPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const { accessToken, logout } = useAuth();
   const navigate = useNavigate();
+  const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
+  const [deletingUsers, setDeletingUsers] = useState<number[]>([]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -110,6 +112,28 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  const handleDeleteClick = (userId: number) => {
+    setDeleteUserId(userId);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteUserId) return;
+    
+    setDeletingUsers(prev => [...prev, deleteUserId]);
+    try {
+      await usersRepository.deleteUser(deleteUserId);
+      // Remove user from state
+      setUsers(users.filter(user => user.id !== deleteUserId));
+      setFilteredUsers(filteredUsers.filter(user => user.id !== deleteUserId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setDeletingUsers(prev => prev.filter(id => id !== deleteUserId));
+      setDeleteUserId(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container-fluid p-4">
@@ -123,9 +147,13 @@ const UsersPage: React.FC = () => {
   if (error) {
     return (
       <div className="container-fluid p-4">
-        <div className="alert alert-danger" role="alert">
-          <h4 className="alert-heading">Error!</h4>
-          <p>{error}</p>
+        <div className="alert alert-danger alert-dismissible fade show" role="alert">
+          {error}
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setError('')}
+          />
         </div>
       </div>
     );
@@ -207,10 +235,19 @@ const UsersPage: React.FC = () => {
                           Change Role
                         </button>
                         <button 
-                          className="btn btn-sm btn-outline-secondary"
-                          title="Deactivate user"
+                          className="btn btn-sm btn-outline-danger"
+                          title="Delete user"
+                          onClick={() => handleDeleteClick(user.id)}
+                          disabled={deletingUsers.includes(user.id)}
                         >
-                          Deactivate
+                          {deletingUsers.includes(user.id) ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm me-1" />
+                              Deleting...
+                            </>
+                          ) : (
+                            'Delete'
+                          )}
                         </button>
                       </div>
                     </td>
@@ -227,6 +264,54 @@ const UsersPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteUserId && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirm Delete</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => setDeleteUserId(null)}
+                  disabled={deletingUsers.includes(deleteUserId)}
+                />
+              </div>
+              <div className="modal-body">
+                <p>Are you sure you want to delete this user?</p>
+                <p className="text-muted">This action cannot be undone.</p>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setDeleteUserId(null)}
+                  disabled={deletingUsers.includes(deleteUserId)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-danger" 
+                  onClick={handleDeleteConfirm}
+                  disabled={deletingUsers.includes(deleteUserId)}
+                >
+                  {deletingUsers.includes(deleteUserId) ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete User'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
