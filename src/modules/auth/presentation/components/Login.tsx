@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { AuthRepository } from '../../infrastructure/AuthRepository';
@@ -15,13 +15,6 @@ function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      navigate('/dashboard');
-    }
-  }, [navigate]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -30,7 +23,7 @@ function Login() {
     try {
       const response = await authRepository.login(email, password);
       login(response);
-      navigate('/dashboard');
+      navigate('/dashboard/users');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

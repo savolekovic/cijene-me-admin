@@ -5,14 +5,14 @@ import { AuthProvider, useAuth } from './modules/auth/presentation/context/AuthC
 import Login from './modules/auth/presentation/components/Login';
 import Dashboard from './modules/shared/presentation/components/Dashboard';
 import UsersPage from './modules/users/presentation/components/UsersPage';
-import CategoriesPage from './modules/products/presentation/components/CategoriesPage';
+import CategoriesPage from './modules/categories/presentation/components/CategoriesPage';
 import ProductsPage from './modules/products/presentation/components/ProductsPage';
 import ProductEntriesPage from './modules/products/presentation/components/ProductEntriesPage';
 import StoreBrandPage from './modules/stores/presentation/components/StoreBrandPage';
 import StoreLocationPage from './modules/stores/presentation/components/StoreLocationPage';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactElement;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactElement => {
@@ -21,16 +21,16 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactElement => {
   if (!accessToken) {
     return <Navigate to="/" replace />;
   }
-  return <>{children}</>;
+  return children;
 };
 
 const PublicRoute = ({ children }: ProtectedRouteProps): ReactElement => {
   const { accessToken } = useAuth();
   
   if (accessToken) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/dashboard/users" replace />;
   }
-  return <>{children}</>;
+  return children;
 };
 
 function App() {
@@ -54,7 +54,6 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/dashboard/users" replace />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="products" element={<ProductsPage />} />
