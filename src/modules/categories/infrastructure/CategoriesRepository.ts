@@ -14,4 +14,4 @@ export class CategoriesRepository implements ICategoriesRepository {
       throw new Error('Failed to fetch categories');
     }
   }
-} 
+}

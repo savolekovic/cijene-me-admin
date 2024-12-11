@@ -6,4 +6,4 @@ export interface Category {
 
 export interface ICategoriesRepository {
   getAllCategories(): Promise<Category[]>;
-} 
+}
