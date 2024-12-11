@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { FaPlus, FaSpinner, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { CategoriesRepository } from '../../infrastructure/CategoriesRepository';
 import { Category } from '../../domain/interfaces/ICategoriesRepository';
+import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const categoriesRepository = new CategoriesRepository();
 
@@ -14,6 +16,11 @@ const CategoriesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -21,14 +28,19 @@ const CategoriesPage: React.FC = () => {
         const data = await categoriesRepository.getAllCategories();
         setCategories(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        if (err instanceof Error && err.message.includes('Unauthorized')) {
+          logout();
+          navigate('/');
+        } else {
+          setError(err instanceof Error ? err.message : 'An error occurred');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCategories();
-  }, []);
+  }, [logout, navigate]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -67,6 +79,27 @@ const CategoriesPage: React.FC = () => {
     return 0;
   });
 
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreating(true);
+    try {
+      const newCategory = await categoriesRepository.createCategory(newCategoryName);
+      setCategories([...categories, newCategory]);
+      setNewCategoryName('');
+      setShowAddModal(false);
+      setError('');
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('Unauthorized')) {
+        logout();
+        navigate('/');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to create category');
+      }
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
@@ -86,7 +119,10 @@ const CategoriesPage: React.FC = () => {
 
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Categories Management</h1>
-        <button className="btn btn-primary">
+        <button 
+          className="btn btn-primary"
+          onClick={() => setShowAddModal(true)}
+        >
           <FaPlus className="me-2" />
           Add Category
         </button>
@@ -128,6 +164,65 @@ const CategoriesPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Add Category Modal */}
+      {showAddModal && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <form onSubmit={handleCreateCategory}>
+                <div className="modal-header">
+                  <h5 className="modal-title">Add New Category</h5>
+                  <button 
+                    type="button" 
+                    className="btn-close" 
+                    onClick={() => setShowAddModal(false)}
+                    disabled={isCreating}
+                  />
+                </div>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label htmlFor="categoryName" className="form-label">Category Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="categoryName"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      required
+                      disabled={isCreating}
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setShowAddModal(false)}
+                    disabled={isCreating}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary"
+                    disabled={isCreating || !newCategoryName.trim()}
+                  >
+                    {isCreating ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Category'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
