@@ -8,4 +8,5 @@ export interface User {
 
 export interface IUsersRepository {
   getAllUsers(): Promise<User[]>;
+  deleteUser(userId: number): Promise<{ message: string }>;
 } 
