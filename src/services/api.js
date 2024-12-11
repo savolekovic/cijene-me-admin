@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Use proxy in development and preview, direct URL in production
-export const BASE_URL = 'https://cijene-me-api.onrender.com';
+// Use proxy path in all environments
+export const BASE_URL = '/api';
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -10,6 +10,24 @@ export const api = axios.create({
   },
   withCredentials: false
 });
+
+// Add request interceptor for debugging
+api.interceptors.request.use(request => {
+  console.log('Starting Request:', request)
+  return request
+});
+
+// Add response interceptor for debugging
+api.interceptors.response.use(
+  response => {
+      console.log('Response:', response)
+      return response
+  },
+  error => {
+      console.error('Response Error:', error.response || error)
+      return Promise.reject(error)
+  }
+);
 
 export const setAuthToken = (token) => {
   if (token) {

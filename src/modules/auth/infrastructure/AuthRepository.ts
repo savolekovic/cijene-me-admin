@@ -1,11 +1,7 @@
 import { api } from '../../../services/api';
 import { IAuthRepository } from '../domain/interfaces/IAuthRepository';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
-interface ValidationError {
-  error: 'Validation error';
-  message: string;
-}
 
 export class AuthRepository implements IAuthRepository {
   async login(email: string, password: string) {
