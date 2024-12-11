@@ -134,6 +134,11 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  const handleChangeRole = () => {
+    
+    alert('To be implemented');
+  };
+
   if (isLoading) {
     return (
       <div className="container-fluid p-4">
@@ -231,6 +236,7 @@ const UsersPage: React.FC = () => {
                         <button 
                           className="btn btn-sm btn-outline-warning"
                           title="Change user role"
+                          onClick={handleChangeRole}
                         >
                           Change Role
                         </button>
