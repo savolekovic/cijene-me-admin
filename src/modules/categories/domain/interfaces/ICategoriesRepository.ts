@@ -7,4 +7,5 @@ export interface Category {
 export interface ICategoriesRepository {
   getAllCategories(): Promise<Category[]>;
   createCategory(name: string): Promise<Category>;
+  deleteCategory(categoryId: number): Promise<void>;
 }

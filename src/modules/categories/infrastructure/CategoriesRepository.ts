@@ -33,4 +33,22 @@ export class CategoriesRepository implements ICategoriesRepository {
       throw new Error('Failed to create category');
     }
   }
+
+  async deleteCategory(categoryId: number): Promise<void> {
+    try {
+      await api.delete(`/categories/${categoryId}`);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized to delete a category');
+        } else if (error.response?.status === 403) {
+          throw new Error("Don't have permission to delete a category");
+        } else if (error.response?.status === 404) {
+          throw new Error('Category not found');
+        }
+        throw new Error(error.response?.data?.message || 'Failed to delete category');
+      }
+      throw new Error('Failed to delete category');
+    }
+  }
 }
