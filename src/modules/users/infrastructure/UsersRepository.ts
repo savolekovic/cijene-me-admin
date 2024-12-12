@@ -6,6 +6,10 @@ export class UsersRepository implements IUsersRepository {
   async getAllUsers(): Promise<User[]> {
     try {
       const response = await api.get('/users/');
+      console.log('Success Response:', {
+        status: response.status,
+        data: response.data
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
