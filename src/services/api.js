@@ -1,4 +1,5 @@
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 
 // Use proxy path in all environments
 export const BASE_URL = '/api';
@@ -9,6 +10,17 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: false
+});
+
+// Configure axios-retry
+axiosRetry(api, { 
+  retries: 2, // number of retries
+  retryDelay: axiosRetry.exponentialDelay, // exponential delay between retries
+  retryCondition: (error) => {
+    // Retry on network errors or 500 errors
+    return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+           error.response?.status === 500;
+  }
 });
 
 let isRefreshing = false;
@@ -30,6 +42,18 @@ const auth = JSON.parse(localStorage.getItem('auth') || '{}');
 if (auth.accessToken) {
   api.defaults.headers.common['Authorization'] = `Bearer ${auth.accessToken}`;
 }
+
+// Add request interceptor for debugging
+api.interceptors.request.use(request => {
+  // Log the full request details
+  console.log('Request Details:', {
+    url: request.url,
+    method: request.method,
+    headers: request.headers,
+    baseURL: request.baseURL
+  });
+  return request;
+});
 
 // Add response interceptor for debugging
 api.interceptors.response.use(
