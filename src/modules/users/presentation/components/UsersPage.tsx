@@ -32,14 +32,23 @@ const UsersPage: React.FC = () => {
     const fetchUsers = async () => {
       try {
         const data = await usersRepository.getAllUsers();
-        setUsers(data);
-        setFilteredUsers(data);
+        if (Array.isArray(data)) {
+          setUsers(data);
+          setFilteredUsers(data);
+        } else {
+          console.error('Received non-array data:', data);
+          setError('Invalid data format received from server');
+          setUsers([]);
+          setFilteredUsers([]);
+        }
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
           navigate('/');
         } else {
           setError(err instanceof Error ? err.message : 'An error occurred');
+          setUsers([]);
+          setFilteredUsers([]);
         }
       } finally {
         setIsLoading(false);
@@ -217,7 +226,7 @@ const UsersPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {Array.isArray(filteredUsers) && filteredUsers.map((user) => (
                   <tr key={user.id}>
                     <td>{user.id}</td>
                     <td>{user.full_name}</td>
@@ -260,7 +269,7 @@ const UsersPage: React.FC = () => {
             </table>
           </div>
 
-          {filteredUsers.length === 0 && (
+          {(!Array.isArray(filteredUsers) || filteredUsers.length === 0) && (
             <div className="text-center py-4">
               <p className="text-muted">No users found matching your search criteria.</p>
             </div>

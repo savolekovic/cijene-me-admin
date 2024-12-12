@@ -14,12 +14,23 @@ export const api = axios.create({
 
 // Configure axios-retry
 axiosRetry(api, { 
-  retries: 2, // number of retries
-  retryDelay: axiosRetry.exponentialDelay, // exponential delay between retries
+  retries: 2,
+  retryDelay: axiosRetry.exponentialDelay,
   retryCondition: (error) => {
-    // Retry on network errors or 500 errors
-    return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
-           error.response?.status === 500;
+    // Log the error for debugging
+    console.log('Retry condition error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      isIdempotent: axiosRetry.isNetworkOrIdempotentRequestError(error)
+    });
+
+    // Only retry on network errors and 500s, not on 400s or redirects
+    return error.response?.status === 500 || 
+           (error.code && ['ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED'].includes(error.code));
+  },
+  // Add retry delay logging
+  onRetry: (retryCount, error, requestConfig) => {
+    console.log(`Retry attempt ${retryCount} for ${requestConfig.url}`);
   }
 });
 
