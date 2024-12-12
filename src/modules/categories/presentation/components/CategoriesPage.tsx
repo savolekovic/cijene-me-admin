@@ -21,6 +21,10 @@ const CategoriesPage: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -100,6 +104,31 @@ const CategoriesPage: React.FC = () => {
     }
   };
 
+  const handleDeleteClick = (categoryId: number) => {
+    setDeleteId(categoryId);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
+    
+    setIsDeleting(true);
+    try {
+      await categoriesRepository.deleteCategory(deleteId);
+      setCategories(categories.filter(cat => cat.id !== deleteId));
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete category');
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
+    }
+  };
+
+  const handleEditClick = (category: Category) => {
+    setEditId(category.id);
+    setEditName(category.name);
+  };
+
   if (isLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
@@ -143,14 +172,42 @@ const CategoriesPage: React.FC = () => {
                   <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>
                     Created At {getSortIcon('created_at')}
                   </th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedCategories.map((category) => (
                   <tr key={category.id}>
                     <td>{category.id}</td>
-                    <td>{category.name}</td>
+                    <td>
+                      {editId === category.id ? (
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                        />
+                      ) : (
+                        category.name
+                      )}
+                    </td>
                     <td>{new Date(category.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <div className="btn-group">
+                        <button 
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => handleEditClick(category)}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDeleteClick(category.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -219,6 +276,54 @@ const CategoriesPage: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteId && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirm Delete</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => setDeleteId(null)}
+                  disabled={isDeleting}
+                />
+              </div>
+              <div className="modal-body">
+                <p>Are you sure you want to delete this category?</p>
+                <p className="text-muted">This action cannot be undone.</p>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setDeleteId(null)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-danger" 
+                  onClick={handleDeleteConfirm}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Category'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
