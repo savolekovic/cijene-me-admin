@@ -2,24 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://cijene-me-api.onrender.com/:path*",
-      "has": [
-        {
-          "type": "header",
-          "key": "Authorization"
-        }
-      ]
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate"
-        }
-      ]
+      "destination": "https://cijene-me-api.onrender.com/:path*"
     }
   ]
 } 
