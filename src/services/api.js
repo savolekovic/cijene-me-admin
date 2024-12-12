@@ -1,7 +1,5 @@
 import axios from 'axios';
-import axiosRetry from 'axios-retry';
 
-// Use proxy path in all environments
 export const BASE_URL = '/api';
 
 export const api = axios.create({
@@ -10,28 +8,6 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: false
-});
-
-// Configure axios-retry
-axiosRetry(api, { 
-  retries: 2,
-  retryDelay: axiosRetry.exponentialDelay,
-  retryCondition: (error) => {
-    // Log the error for debugging
-    console.log('Retry condition error:', {
-      status: error.response?.status,
-      data: error.response?.data,
-      isIdempotent: axiosRetry.isNetworkOrIdempotentRequestError(error)
-    });
-
-    // Only retry on network errors and 500s, not on 400s or redirects
-    return error.response?.status === 500 || 
-           (error.code && ['ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED'].includes(error.code));
-  },
-  // Add retry delay logging
-  onRetry: (retryCount, error, requestConfig) => {
-    console.log(`Retry attempt ${retryCount} for ${requestConfig.url}`);
-  }
 });
 
 let isRefreshing = false;
@@ -56,12 +32,19 @@ if (auth.accessToken) {
 
 // Add request interceptor for debugging
 api.interceptors.request.use(request => {
-  // Log the full request details
-  console.log('Request Details:', {
+  // Construct full URL
+  const fullUrl = request.baseURL 
+    ? new URL(request.url, request.baseURL.startsWith('http') ? request.baseURL : `https://${window.location.host}${request.baseURL}`).href
+    : request.url;
+
+  // Log full request details
+  console.log('Full Request Details:', {
+    fullUrl,
+    baseURL: request.baseURL,
     url: request.url,
     method: request.method,
     headers: request.headers,
-    baseURL: request.baseURL
+    data: request.data
   });
   return request;
 });

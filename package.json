@@ -5,7 +5,6 @@
   "proxy": "https://cijene-me-api.onrender.com",
   "dependencies": {
     "axios": "^1.7.9",
-    "axios-retry": "^4.5.0",
     "bootstrap": "^5.3.3",
     "cra-template": "1.2.0",
     "react": "^18.2.0",
