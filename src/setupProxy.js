@@ -10,8 +10,25 @@ module.exports = function(app) {
         '^/api': '',
       },
       onProxyReq: (proxyReq, req, res) => {
-        // Log proxy requests for debugging
-        console.log('Proxying:', req.method, req.path);
+        console.log('Proxy Request:', {
+          path: req.path,
+          method: req.method,
+          headers: req.headers
+        });
+      },
+      onProxyRes: (proxyRes, req, res) => {
+        console.log('Proxy Response:', {
+          path: req.path,
+          method: req.method,
+          status: proxyRes.statusCode
+        });
+      },
+      onError: (err, req, res) => {
+        console.error('Proxy Error:', err);
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+        });
+        res.end(JSON.stringify({ message: 'Proxy Error' }));
       }
     })
   );
