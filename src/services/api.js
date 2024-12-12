@@ -1,4 +1,5 @@
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 
 export const BASE_URL = '/api';
 
@@ -8,6 +9,27 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: false
+});
+
+// Configure axios-retry
+axiosRetry(api, {
+  retries: 3, // Number of retry attempts
+  retryDelay: (retryCount) => {
+    console.log(`Retry attempt: ${retryCount}`);
+    return axiosRetry.exponentialDelay(retryCount);
+  },
+  retryCondition: (error) => {
+    // Only retry on 500 errors
+    return error.response?.status === 500;
+  },
+  onRetry: (retryCount, error, requestConfig) => {
+    console.log('Retrying request:', {
+      attempt: retryCount,
+      url: requestConfig.url,
+      method: requestConfig.method,
+      error: error.message
+    });
+  }
 });
 
 let isRefreshing = false;
