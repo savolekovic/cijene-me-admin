@@ -1,8 +1,28 @@
 {
   "rewrites": [
     {
+      "source": "/api/auth/:path*",
+      "destination": "https://cijene-me-api.onrender.com/auth/:path*"
+    },
+    {
       "source": "/api/:path*",
-      "destination": "https://cijene-me-api.onrender.com/:path*"
+      "destination": "https://cijene-me-api.onrender.com/:path*",
+      "has": [
+        {
+          "type": "header",
+          "key": "Authorization"
+        }
+      ]
+    },
+    {
+      "source": "/api/:path*/",
+      "destination": "https://cijene-me-api.onrender.com/:path*/",
+      "has": [
+        {
+          "type": "header",
+          "key": "Authorization"
+        }
+      ]
     }
   ]
 } 
