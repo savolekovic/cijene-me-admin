@@ -4,6 +4,11 @@
   "private": true,
   "proxy": "https://cijene-me-api.onrender.com",
   "dependencies": {
+    "@babel/plugin-transform-private-property-in-object": "^7.23.4",
+    "@babel/plugin-transform-class-properties": "^7.23.3",
+    "@babel/plugin-transform-nullish-coalescing-operator": "^7.23.4",
+    "@babel/plugin-transform-optional-chaining": "^7.23.4",
+    "@babel/plugin-transform-private-methods": "^7.23.3",
     "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "cra-template": "1.2.0",
