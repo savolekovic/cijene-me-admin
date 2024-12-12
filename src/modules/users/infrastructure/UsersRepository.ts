@@ -9,6 +9,12 @@ export class UsersRepository implements IUsersRepository {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        console.log('Error Response:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers
+        });
+        
         if (error.response?.status === 401 || error.response?.status === 403) {
           throw new Error('Unauthorized access. Please login again.');
         }
