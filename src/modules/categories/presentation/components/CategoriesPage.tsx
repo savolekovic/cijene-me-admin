@@ -23,8 +23,9 @@ const CategoriesPage: React.FC = () => {
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editName, setEditName] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -130,8 +131,28 @@ const CategoriesPage: React.FC = () => {
   };
 
   const handleEditClick = (category: Category) => {
-    setEditId(category.id);
+    setEditingCategory(category);
     setEditName(category.name);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory || !editName.trim()) return;
+
+    setIsEditing(true);
+    try {
+      const updatedCategory = await categoriesRepository.updateCategory(editingCategory.id, editName.trim());
+      setCategories(categories.map(cat => 
+        cat.id === updatedCategory.id ? updatedCategory : cat
+      ));
+      setEditingCategory(null);
+      setEditName('');
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update category');
+    } finally {
+      setIsEditing(false);
+    }
   };
 
   if (isLoading) {
@@ -184,18 +205,7 @@ const CategoriesPage: React.FC = () => {
                 {sortedCategories.map((category) => (
                   <tr key={category.id}>
                     <td>{category.id}</td>
-                    <td>
-                      {editId === category.id ? (
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                        />
-                      ) : (
-                        category.name
-                      )}
-                    </td>
+                    <td>{category.name}</td>
                     <td>{new Date(category.created_at).toLocaleDateString()}</td>
                     <td>
                       <div className="btn-group">
@@ -329,6 +339,65 @@ const CategoriesPage: React.FC = () => {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Category Modal */}
+      {editingCategory && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <form onSubmit={handleEditSubmit}>
+                <div className="modal-header">
+                  <h5 className="modal-title">Edit Category</h5>
+                  <button 
+                    type="button" 
+                    className="btn-close" 
+                    onClick={() => setEditingCategory(null)}
+                    disabled={isEditing}
+                  />
+                </div>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label htmlFor="editCategoryName" className="form-label">Category Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="editCategoryName"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      required
+                      disabled={isEditing}
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setEditingCategory(null)}
+                    disabled={isEditing}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary"
+                    disabled={isEditing || !editName.trim()}
+                  >
+                    {isEditing ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

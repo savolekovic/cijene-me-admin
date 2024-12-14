@@ -57,4 +57,25 @@ export class CategoriesRepository implements ICategoriesRepository {
       throw new Error('Failed to delete category');
     }
   }
+
+  async updateCategory(categoryId: number, name: string): Promise<Category> {
+    try {
+      const response = await api.put(`/categories/${categoryId}`, { name });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access. Please login again.');
+        } else if (error.response?.status === 403) {
+          throw new Error("Don't have permission to update category");
+        } else if (error.response?.status === 404) {
+          throw new Error('Category not found');
+        } else if (error.response?.status === 409) {
+          throw new Error('Category name already exists');
+        }
+        throw new Error(error.response?.data?.message || 'Failed to update category');
+      }
+      throw new Error('Failed to update category');
+    }
+  }
 }
