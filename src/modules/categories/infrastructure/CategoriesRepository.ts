@@ -5,7 +5,13 @@ import axios from 'axios';
 export class CategoriesRepository implements ICategoriesRepository {
   async getAllCategories(): Promise<Category[]> {
     try {
-      const response = await api.get('/categories/');
+      const response = await api.get('/categories/', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {

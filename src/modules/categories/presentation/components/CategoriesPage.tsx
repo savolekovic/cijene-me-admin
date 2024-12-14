@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { FaPlus, FaSpinner, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { CategoriesRepository } from '../../infrastructure/CategoriesRepository';
 import { Category } from '../../domain/interfaces/ICategoriesRepository';
@@ -30,6 +30,7 @@ const CategoriesPage: React.FC = () => {
     const fetchCategories = async () => {
       try {
         const data = await categoriesRepository.getAllCategories();
+        console.log('Fetched categories:', data);  // Debug log
         setCategories(data);
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
@@ -62,26 +63,28 @@ const CategoriesPage: React.FC = () => {
       <FaSortDown className="ms-1 text-primary" />;
   };
 
-  const sortedCategories = [...categories].sort((a, b) => {
-    let aValue = a[sortField];
-    let bValue = b[sortField];
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
 
-    if (sortField === 'created_at') {
-      aValue = new Date(aValue).getTime();
-      bValue = new Date(bValue).getTime();
-    }
+      if (sortField === 'created_at') {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
 
-    if (typeof aValue === 'string') {
-      aValue = aValue.toLowerCase();
-    }
-    if (typeof bValue === 'string') {
-      bValue = bValue.toLowerCase();
-    }
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+      }
+      if (typeof bValue === 'string') {
+        bValue = bValue.toLowerCase();
+      }
 
-    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [categories, sortField, sortOrder]);
 
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,8 +117,9 @@ const CategoriesPage: React.FC = () => {
     setIsDeleting(true);
     try {
       await categoriesRepository.deleteCategory(deleteId);
-      const updatedCategories = await categoriesRepository.getAllCategories();
+      const updatedCategories = categories.filter(cat => cat.id !== deleteId);
       setCategories(updatedCategories);
+      console.log('Categories after delete:', updatedCategories);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete category');
