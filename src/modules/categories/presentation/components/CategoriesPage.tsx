@@ -114,7 +114,8 @@ const CategoriesPage: React.FC = () => {
     setIsDeleting(true);
     try {
       await categoriesRepository.deleteCategory(deleteId);
-      setCategories(categories.filter(cat => cat.id !== deleteId));
+      const updatedCategories = await categoriesRepository.getAllCategories();
+      setCategories(updatedCategories);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete category');
