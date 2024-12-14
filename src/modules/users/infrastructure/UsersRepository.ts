@@ -47,7 +47,9 @@ export class UsersRepository implements IUsersRepository {
 
   async changeRole(userId: number, newRole: string): Promise<User> {
     try {
-      const response = await api.put(`/users/${userId}/role`, { role: newRole });
+      const response = await api.put(`/users/${userId}/role`, {
+        role: newRole
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -55,6 +57,9 @@ export class UsersRepository implements IUsersRepository {
           throw new Error('Unauthorized access. Please login again.');
         } else if (error.response?.status === 404) {
           throw new Error('User not found');
+        } else if (error.response?.status === 500) {
+          console.error('Server Error:', error.response.data);
+          throw new Error('Server error occurred while changing role');
         }
         throw new Error(error.response?.data?.message || 'Failed to change user role');
       }

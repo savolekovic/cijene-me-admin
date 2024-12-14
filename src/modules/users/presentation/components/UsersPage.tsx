@@ -116,7 +116,7 @@ const UsersPage: React.FC = () => {
     switch (role.toLowerCase()) {
       case 'admin':
         return 'badge rounded-pill bg-danger px-3 py-2 text-uppercase';
-      case 'mediator':
+      case 'moderator':
         return 'badge rounded-pill bg-warning px-3 py-2 text-uppercase';
       default:
         return 'badge rounded-pill bg-primary px-3 py-2 text-uppercase';
@@ -154,7 +154,7 @@ const UsersPage: React.FC = () => {
     
     setIsChangingRole(true);
     try {
-      const newRole = changeRoleUser.role === 'user' ? 'mediator' : 'user';
+      const newRole = changeRoleUser.role === 'user' ? 'moderator' : 'user';
       const updatedUser = await usersRepository.changeRole(changeRoleUser.id, newRole);
       
       // Update users list with the updated user
@@ -368,7 +368,7 @@ const UsersPage: React.FC = () => {
               <div className="modal-body">
                 <p>
                   Are you sure you want to change {changeRoleUser.full_name}'s role to{' '}
-                  {changeRoleUser.role === 'user' ? 'Mediator' : 'User'}?
+                  {changeRoleUser.role === 'user' ? 'Moderator' : 'User'}?
                 </p>
               </div>
               <div className="modal-footer">
