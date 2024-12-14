@@ -44,4 +44,21 @@ export class UsersRepository implements IUsersRepository {
       throw new Error('Failed to delete user');
     }
   }
+
+  async changeRole(userId: number, newRole: string): Promise<User> {
+    try {
+      const response = await api.put(`/users/${userId}/role`, { role: newRole });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          throw new Error('Unauthorized access. Please login again.');
+        } else if (error.response?.status === 404) {
+          throw new Error('User not found');
+        }
+        throw new Error(error.response?.data?.message || 'Failed to change user role');
+      }
+      throw new Error('Failed to change user role');
+    }
+  }
 } 

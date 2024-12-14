@@ -22,6 +22,8 @@ const UsersPage: React.FC = () => {
   const navigate = useNavigate();
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
   const [deletingUsers, setDeletingUsers] = useState<number[]>([]);
+  const [changeRoleUser, setChangeRoleUser] = useState<User | null>(null);
+  const [isChangingRole, setIsChangingRole] = useState(false);
 
   useEffect(() => {
     if (!accessToken) {
@@ -143,9 +145,32 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  const handleChangeRole = () => {
+  const handleChangeRoleClick = (user: User) => {
+    setChangeRoleUser(user);
+  };
+
+  const handleChangeRoleConfirm = async () => {
+    if (!changeRoleUser) return;
     
-    alert('To be implemented');
+    setIsChangingRole(true);
+    try {
+      const newRole = changeRoleUser.role === 'user' ? 'moderator' : 'user';
+      const updatedUser = await usersRepository.changeRole(changeRoleUser.id, newRole);
+      
+      // Update users list with the updated user
+      setUsers(users.map(user => 
+        user.id === updatedUser.id ? updatedUser : user
+      ));
+      setFilteredUsers(filteredUsers.map(user => 
+        user.id === updatedUser.id ? updatedUser : user
+      ));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to change user role');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setIsChangingRole(false);
+      setChangeRoleUser(null);
+    }
   };
 
   if (isLoading) {
@@ -242,7 +267,8 @@ const UsersPage: React.FC = () => {
                         <button 
                           className="btn btn-sm btn-outline-warning"
                           title="Change user role"
-                          onClick={handleChangeRole}
+                          onClick={() => handleChangeRoleClick(user)}
+                          disabled={user.role === 'admin'}
                         >
                           Change Role
                         </button>
@@ -317,6 +343,56 @@ const UsersPage: React.FC = () => {
                     </>
                   ) : (
                     'Delete User'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Role Modal */}
+      {changeRoleUser && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirm Role Change</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => setChangeRoleUser(null)}
+                  disabled={isChangingRole}
+                />
+              </div>
+              <div className="modal-body">
+                <p>
+                  Are you sure you want to change {changeRoleUser.full_name}'s role to{' '}
+                  {changeRoleUser.role === 'user' ? 'Moderator' : 'User'}?
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setChangeRoleUser(null)}
+                  disabled={isChangingRole}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-warning" 
+                  onClick={handleChangeRoleConfirm}
+                  disabled={isChangingRole}
+                >
+                  {isChangingRole ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" />
+                      Changing Role...
+                    </>
+                  ) : (
+                    'Change Role'
                   )}
                 </button>
               </div>
