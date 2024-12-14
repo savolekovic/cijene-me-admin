@@ -154,7 +154,9 @@ const UsersPage: React.FC = () => {
     
     setIsChangingRole(true);
     try {
-      const newRole = changeRoleUser.role === 'user' ? 'moderator' : 'user';
+      console.log('Current role:', changeRoleUser.role);  // Debug log
+      const newRole = changeRoleUser.role.toLowerCase() === 'moderator' ? 'user' : 'moderator';
+      console.log('New role:', newRole);  // Debug log
       const updatedUser = await usersRepository.changeRole(changeRoleUser.id, newRole);
       
       // Update users list with the updated user
@@ -165,6 +167,7 @@ const UsersPage: React.FC = () => {
         user.id === updatedUser.id ? updatedUser : user
       ));
     } catch (err) {
+      console.error('Change role error:', err);  // Debug log
       setError(err instanceof Error ? err.message : 'Failed to change user role');
       setTimeout(() => setError(''), 3000);
     } finally {
@@ -367,8 +370,9 @@ const UsersPage: React.FC = () => {
               </div>
               <div className="modal-body">
                 <p>
-                  Are you sure you want to change {changeRoleUser.full_name}'s role to{' '}
-                  {changeRoleUser.role === 'user' ? 'Moderator' : 'User'}?
+                  Are you sure you want to change {changeRoleUser.full_name}'s role from{' '}
+                  <strong>{changeRoleUser.role}</strong> to{' '}
+                  <strong>{changeRoleUser.role.toLowerCase() === 'moderator' ? 'User' : 'Moderator'}</strong>?
                 </p>
               </div>
               <div className="modal-footer">
