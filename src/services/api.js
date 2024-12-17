@@ -11,6 +11,28 @@ export const api = axios.create({
   withCredentials: false
 });
 
+// Add a response interceptor
+api.interceptors.response.use(
+  (response) => {
+    console.log('API Response:', {
+      url: response.config.url,
+      method: response.config.method,
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
+  (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    return Promise.reject(error);
+  }
+); 
+
 // Configure axios-retry
 axiosRetry(api, {
   retries: 3, // Number of retry attempts
