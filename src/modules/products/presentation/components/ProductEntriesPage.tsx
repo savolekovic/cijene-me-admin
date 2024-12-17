@@ -8,8 +8,7 @@ import { useProductEntryModals } from '../hooks/useProductEntryModals';
 import { useDropdownData } from '../hooks/useDropdownData';
 import { useSorting } from '../hooks/useSorting';
 import { ProductEntriesTable } from './ProductEntriesTable';
-import { AddProductEntryModal } from './modals/AddProductEntryModal';
-import { EditProductEntryModal } from './modals/EditProductEntryModal';
+import { ProductEntryFormModal } from './modals/ProductEntryFormModal';
 import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
 import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository';
 
@@ -193,36 +192,21 @@ const ProductEntriesPage: React.FC = () => {
         </div>
       </div>
 
-      <AddProductEntryModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSubmit={handleCreateEntry}
+      <ProductEntryFormModal
+        isOpen={showAddModal || !!editingEntry}
+        onClose={() => editingEntry ? setEditingEntry(null) : setShowAddModal(false)}
+        onSubmit={editingEntry ? handleEditSubmit : handleCreateEntry}
         products={products}
         storeLocations={storeLocations}
         isLoadingDropdownData={isLoadingDropdownData}
-        isCreating={isCreating}
-        productId={newEntryProductId}
-        setProductId={setNewEntryProductId}
-        locationId={newEntryStoreLocationId}
-        setLocationId={setNewEntryStoreLocationId}
-        price={newEntryPrice}
-        setPrice={setNewEntryPrice}
-      />
-
-      <EditProductEntryModal
-        isOpen={!!editingEntry}
-        onClose={() => setEditingEntry(null)}
-        onSubmit={handleEditSubmit}
-        products={products}
-        storeLocations={storeLocations}
-        isLoadingDropdownData={isLoadingDropdownData}
-        isEditing={isEditing}
-        editProductId={editProductId}
-        setEditProductId={setEditProductId}
-        editStoreLocationId={editStoreLocationId}
-        setEditStoreLocationId={setEditStoreLocationId}
-        editPrice={editPrice}
-        setEditPrice={setEditPrice}
+        isProcessing={editingEntry ? isEditing : isCreating}
+        productId={editingEntry ? editProductId : newEntryProductId}
+        setProductId={editingEntry ? setEditProductId : setNewEntryProductId}
+        locationId={editingEntry ? editStoreLocationId : newEntryStoreLocationId}
+        setLocationId={editingEntry ? setEditStoreLocationId : setNewEntryStoreLocationId}
+        price={editingEntry ? editPrice : newEntryPrice}
+        setPrice={editingEntry ? setEditPrice : setNewEntryPrice}
+        mode={editingEntry ? 'edit' : 'add'}
       />
 
       <DeleteConfirmationModal
