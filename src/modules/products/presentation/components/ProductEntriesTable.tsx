@@ -60,7 +60,7 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
               <td>{entry.product.name}</td>
               <td>{entry.store_location.address}</td>
               <td>{entry.store_location.store_brand.name}</td>
-              <td>€{Number(entry.price).toFixed(2)}</td>
+              <td>€{entry.price.toFixed(2)}</td>
               <td>{new Date(entry.created_at).toLocaleDateString()}</td>
               <td>
                 <div className="btn-group">
