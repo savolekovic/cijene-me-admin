@@ -3,6 +3,7 @@ export interface StoreLocation {
   store_brand_id: number;
   address: string;
   created_at: string;
+  store_brand_name?: string;
 }
 
 export interface IStoreLocationRepository {

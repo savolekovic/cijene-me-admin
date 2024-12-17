@@ -1,7 +1,6 @@
 import { api } from '../../../services/api';
-
-import axios from 'axios';
 import { IStoreLocationRepository, StoreLocation } from '../domain/interfaces/IStoreLocationRepository';
+import axios from 'axios';
 
 export class StoreLocationRepository implements IStoreLocationRepository {
   async getAllStoreLocations(): Promise<StoreLocation[]> {
@@ -16,9 +15,9 @@ export class StoreLocationRepository implements IStoreLocationRepository {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Failed to fetch store brands');
+        throw new Error(error.response?.data?.message || 'Failed to fetch store locations');
       }
-      throw new Error('Failed to fetch store brands');
+      throw new Error('Failed to fetch store locations');
     }
   }
 
@@ -32,10 +31,10 @@ export class StoreLocationRepository implements IStoreLocationRepository {
           throw new Error('Unauthorized access. Please login again.');
         } else if (error.response?.status === 403) {
           throw new Error("Don't have permission to create a store location");
+        } else if (error.response?.status === 404) {
+          throw new Error("Store brand not found");
         } else if (error.response?.status === 400) {
           throw new Error("Store location already exists");
-        }else if (error.response?.status === 404) {
-          throw new Error("Store brand not found");
         }
         throw new Error(error.response?.data?.message || 'Failed to create store location');
       }
@@ -54,7 +53,7 @@ export class StoreLocationRepository implements IStoreLocationRepository {
         } else if (error.response?.status === 403) {
           throw new Error("Don't have permission to update store location");
         } else if (error.response?.status === 404) {
-          throw new Error("Store location or store brand not found");
+          throw new Error("Store location or brand not found");
         } else if (error.response?.status === 400) {
           throw new Error("Store location already exists");
         }
@@ -81,4 +80,4 @@ export class StoreLocationRepository implements IStoreLocationRepository {
       throw new Error('Failed to delete store location');
     }
   }
-} 
+}
