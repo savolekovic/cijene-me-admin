@@ -79,7 +79,7 @@ const ProductsPage: React.FC = () => {
     setEditingProduct(product);
     setEditName(product.name);
     setEditImageUrl(product.image_url);
-    setEditCategoryId(product.category_id);
+    setEditCategoryId(product.category.id);
   };
 
   const handleDeleteClick = (productId: number) => {
@@ -209,7 +209,7 @@ const ProductsPage: React.FC = () => {
                       </a>
                     </td>
                     <td>
-                      {categories.find(cat => cat.id === product.category_id)?.name}
+                      {categories.find(cat => cat.id === product.category.id)?.name}
                     </td>
                     <td>{new Date(product.created_at).toLocaleDateString()}</td>
                     <td>

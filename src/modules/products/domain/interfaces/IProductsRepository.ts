@@ -1,10 +1,14 @@
+export interface Category {
+  id: number;
+  name: string;
+}
+
 export interface Product {
   id: number;
   name: string;
   image_url: string;
-  category_id: number;
   created_at: string;
-  category_name?: string;  // Optional field that might come from the API
+  category: Category;
 }
 
 export interface IProductsRepository {
