@@ -93,16 +93,16 @@ const ProductEntriesPage: React.FC = () => {
           bValue = b.id;
           break;
         case 'product_name':
-          aValue = a.product_name || '';
-          bValue = b.product_name || '';
+          aValue = a.product.name || '';
+          bValue = b.product.name || '';
           break;
         case 'store_address':
-          aValue = a.store_address || '';
-          bValue = b.store_address || '';
+          aValue = a.store_location.address || '';
+          bValue = b.store_location.address || '';
           break;
         case 'store_brand_name':
-          aValue = a.store_brand_name || '';
-          bValue = b.store_brand_name || '';
+          aValue = a.store_location.store_brand.name || '';
+          bValue = b.store_location.store_brand.name || '';
           break;
         case 'price':
           aValue = a.price;
@@ -155,8 +155,8 @@ const ProductEntriesPage: React.FC = () => {
 
   const handleEditClick = (entry: ProductEntry) => {
     setEditingEntry(entry);
-    setEditProductId(entry.product_id);
-    setEditStoreLocationId(entry.store_location_id);
+    setEditProductId(entry.product.id);
+    setEditStoreLocationId(entry.store_location.id);
     setEditPrice(entry.price.toString());
   };
 
@@ -263,9 +263,9 @@ const ProductEntriesPage: React.FC = () => {
                 {sortedEntries.map((entry) => (
                   <tr key={entry.id}>
                     <td>{entry.id}</td>
-                    <td>{entry.product_name || products.find(p => p.id === entry.product_id)?.name}</td>
-                    <td>{entry.store_address || storeLocations.find(l => l.id === entry.store_location_id)?.address}</td>
-                    <td>{entry.store_brand_name}</td>
+                    <td>{entry.product.name || products.find(p => p.id === entry.product.id)?.name}</td>
+                    <td>{entry.store_location.address || storeLocations.find(l => l.id === entry.store_location.id)?.address}</td>
+                    <td>{entry.store_location.store_brand.name}</td>
                     <td>€{entry.price.toFixed(2)}</td>
                     <td>{new Date(entry.created_at).toLocaleDateString()}</td>
                     <td>
