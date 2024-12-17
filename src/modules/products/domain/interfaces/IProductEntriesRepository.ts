@@ -3,7 +3,7 @@ import { Product } from "./IProductsRepository";
 
 export interface ProductEntry {
   id: number;
-  price: number;
+  price: string;
   created_at: string;
   product: Product;
   store_location: StoreLocation;
