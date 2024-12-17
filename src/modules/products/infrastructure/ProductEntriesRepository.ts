@@ -26,7 +26,7 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
       const response = await api.post('/product-entries/', {
         product_id,
         store_location_id,
-        price
+        price: price.toString()
       });
       return response.data;
     } catch (error) {
