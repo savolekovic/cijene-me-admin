@@ -5,15 +5,17 @@ import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { StoreBrand } from '../../domain/interfaces/IStoreBrandRepository';
 import { StoreLocation } from '../../domain/interfaces/IStoreLocationRepository';
 import { StoreLocationRepository } from '../../infrastructure/StoreLocationRepository';
+import { StoreBrandRepository } from '../../infrastructure/StoreBrandRepository';
 
 const storeLocationRepository = new StoreLocationRepository();
+const storeBrandRepository = new StoreBrandRepository();
 
 type SortField = 'id' | 'address' | 'store_brand_id' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 const StoreLocationPage: React.FC = () => {
   const [storeLocations, setStoreLocations] = useState<StoreLocation[]>([]);
-  const [storeBrands] = useState<StoreBrand[]>([]);
+  const [storeBrands, setStoreBrands] = useState<StoreBrand[]>([]);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('id');
@@ -34,10 +36,12 @@ const StoreLocationPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [locationsData] = await Promise.all([
+        const [locationsData, brandsData] = await Promise.all([
           storeLocationRepository.getAllStoreLocations(),
+          storeBrandRepository.getAllStoreBrands()
         ]);
         setStoreLocations(locationsData);
+        setStoreBrands(brandsData);
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
