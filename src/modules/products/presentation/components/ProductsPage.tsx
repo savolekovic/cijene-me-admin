@@ -1,21 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaSpinner, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import { ProductsRepository } from '../../infrastructure/ProductsRepository';
-import { Product } from '../../domain/interfaces/IProductsRepository';
-import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';
-import { Category } from '../../../categories/domain/interfaces/ICategoriesRepository';
-import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import { FaPlus, FaSort, FaSortDown, FaSortUp, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import { Category } from '../../../categories/domain/interfaces/ICategoriesRepository';
+import { Product } from '../../domain/interfaces/IProductsRepository';
+import { ProductsRepository } from '../../infrastructure/ProductsRepository';
 
 const productsRepository = new ProductsRepository();
-const categoriesRepository = new CategoriesRepository();
 
 type SortField = 'id' | 'name' | 'category_name' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories] = useState<Category[]>([]);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('id');
@@ -38,12 +36,8 @@ const ProductsPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsData, categoriesData] = await Promise.all([
-          productsRepository.getAllProducts(),
-          categoriesRepository.getAllCategories()
-        ]);
+        const productsData = await productsRepository.getAllProducts();
         setProducts(productsData);
-        setCategories(categoriesData);
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
@@ -208,9 +202,7 @@ const ProductsPage: React.FC = () => {
                         View Image
                       </a>
                     </td>
-                    <td>
-                      {categories.find(cat => cat.id === product.category.id)?.name}
-                    </td>
+                    <td>{product.category.name}</td>
                     <td>{new Date(product.created_at).toLocaleDateString()}</td>
                     <td>
                       <div className="btn-group">
