@@ -3,38 +3,44 @@ import { FaSpinner } from 'react-icons/fa';
 import { Product } from '../../../domain/interfaces/IProductsRepository';
 import { StoreLocation } from '../../../../stores/domain/interfaces/IStoreLocationRepository';
 
-interface EditProductEntryModalProps {
+interface ProductEntryFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   products: Product[];
   storeLocations: StoreLocation[];
   isLoadingDropdownData: boolean;
-  isEditing: boolean;
-  editProductId: number;
-  setEditProductId: (id: number) => void;
-  editStoreLocationId: number;
-  setEditStoreLocationId: (id: number) => void;
-  editPrice: string;
-  setEditPrice: (price: string) => void;
+  isProcessing: boolean;
+  productId: number;
+  setProductId: (id: number) => void;
+  locationId: number;
+  setLocationId: (id: number) => void;
+  price: string;
+  setPrice: (price: string) => void;
+  mode: 'add' | 'edit';
 }
 
-export const EditProductEntryModal: React.FC<EditProductEntryModalProps> = ({
+export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
   products,
   storeLocations,
   isLoadingDropdownData,
-  isEditing,
-  editProductId,
-  setEditProductId,
-  editStoreLocationId,
-  setEditStoreLocationId,
-  editPrice,
-  setEditPrice
+  isProcessing,
+  productId,
+  setProductId,
+  locationId,
+  setLocationId,
+  price,
+  setPrice,
+  mode
 }) => {
   if (!isOpen) return null;
+
+  const title = mode === 'add' ? 'Add Product Entry' : 'Edit Product Entry';
+  const submitButtonText = mode === 'add' ? 'Create Product Entry' : 'Save Changes';
+  const processingText = mode === 'add' ? 'Creating...' : 'Saving...';
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -48,23 +54,24 @@ export const EditProductEntryModal: React.FC<EditProductEntryModalProps> = ({
           ) : (
             <form onSubmit={onSubmit}>
               <div className="modal-header">
-                <h5 className="modal-title">Edit Product Entry</h5>
+                <h5 className="modal-title">{title}</h5>
                 <button
                   type="button"
                   className="btn-close"
                   onClick={onClose}
-                  disabled={isEditing}
+                  disabled={isProcessing}
                 />
               </div>
               <div className="modal-body">
                 <div className="mb-3">
-                  <label htmlFor="editProduct" className="form-label">Product</label>
+                  <label htmlFor="product" className="form-label">Product</label>
                   <select
                     className="form-select"
-                    id="editProduct"
-                    value={editProductId}
-                    onChange={(e) => setEditProductId(Number(e.target.value))}
+                    id="product"
+                    value={productId}
+                    onChange={(e) => setProductId(Number(e.target.value))}
                     required
+                    disabled={isProcessing}
                   >
                     <option value="">Select a product</option>
                     {products.map(product => (
@@ -75,33 +82,35 @@ export const EditProductEntryModal: React.FC<EditProductEntryModalProps> = ({
                   </select>
                 </div>
                 <div className="mb-3">
-                  <label htmlFor="editStoreLocation" className="form-label">Store Location</label>
+                  <label htmlFor="storeLocation" className="form-label">Store Location</label>
                   <select
                     className="form-select"
-                    id="editStoreLocation"
-                    value={editStoreLocationId}
-                    onChange={(e) => setEditStoreLocationId(Number(e.target.value))}
+                    id="storeLocation"
+                    value={locationId}
+                    onChange={(e) => setLocationId(Number(e.target.value))}
                     required
+                    disabled={isProcessing}
                   >
                     <option value="">Select a store location</option>
                     {storeLocations.map(location => (
                       <option key={location.id} value={location.id}>
-                        {location.address}
+                        {location.address} ({location.store_brand.name})
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="mb-3">
-                  <label htmlFor="editPrice" className="form-label">Price (€)</label>
+                  <label htmlFor="price" className="form-label">Price (€)</label>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     className="form-control"
-                    id="editPrice"
-                    value={editPrice}
-                    onChange={(e) => setEditPrice(e.target.value)}
+                    id="price"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
                     required
+                    disabled={isProcessing}
                   />
                 </div>
               </div>
@@ -110,22 +119,22 @@ export const EditProductEntryModal: React.FC<EditProductEntryModalProps> = ({
                   type="button"
                   className="btn btn-secondary"
                   onClick={onClose}
-                  disabled={isEditing}
+                  disabled={isProcessing}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={isEditing || !editProductId || !editStoreLocationId || !editPrice}
+                  disabled={isProcessing || !productId || !locationId || !price}
                 >
-                  {isEditing ? (
+                  {isProcessing ? (
                     <>
                       <span className="spinner-border spinner-border-sm me-2" />
-                      Saving...
+                      {processingText}
                     </>
                   ) : (
-                    'Save Changes'
+                    submitButtonText
                   )}
                 </button>
               </div>
