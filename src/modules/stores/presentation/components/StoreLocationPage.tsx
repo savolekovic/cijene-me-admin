@@ -13,7 +13,7 @@ type SortOrder = 'asc' | 'desc';
 
 const StoreLocationPage: React.FC = () => {
   const [storeLocations, setStoreLocations] = useState<StoreLocation[]>([]);
-  const [storeBrands, setStoreBrands] = useState<StoreBrand[]>([]);
+  const [storeBrands] = useState<StoreBrand[]>([]);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('id');
