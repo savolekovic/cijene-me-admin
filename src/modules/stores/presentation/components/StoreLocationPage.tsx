@@ -1,14 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { FaPlus, FaSpinner, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import { StoreLocationRepository } from '../../infrastructure/StoreLocationRepository';
-import { StoreBrandRepository } from '../../infrastructure/StoreBrandRepository';
-import { StoreLocation } from '../../domain/interfaces/IStoreLocationRepository';
-import { StoreBrand } from '../../domain/interfaces/IStoreBrandRepository';
-import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FaPlus, FaSort, FaSortDown, FaSortUp, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import { StoreBrand } from '../../domain/interfaces/IStoreBrandRepository';
+import { StoreLocation } from '../../domain/interfaces/IStoreLocationRepository';
+import { StoreLocationRepository } from '../../infrastructure/StoreLocationRepository';
 
 const storeLocationRepository = new StoreLocationRepository();
-const storeBrandRepository = new StoreBrandRepository();
 
 type SortField = 'id' | 'address' | 'store_brand_id' | 'created_at';
 type SortOrder = 'asc' | 'desc';
@@ -36,12 +34,10 @@ const StoreLocationPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [locationsData, brandsData] = await Promise.all([
+        const [locationsData] = await Promise.all([
           storeLocationRepository.getAllStoreLocations(),
-          storeBrandRepository.getAllStoreBrands()
         ]);
         setStoreLocations(locationsData);
-        setStoreBrands(brandsData);
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
@@ -68,8 +64,8 @@ const StoreLocationPage: React.FC = () => {
 
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === 'asc' ? 
-      <FaSortUp className="ms-1 text-primary" /> : 
+    return sortOrder === 'asc' ?
+      <FaSortUp className="ms-1 text-primary" /> :
       <FaSortDown className="ms-1 text-primary" />;
   };
 
@@ -147,7 +143,7 @@ const StoreLocationPage: React.FC = () => {
         editAddress,
         editStoreBrandId
       );
-      setStoreLocations(storeLocations.map(loc => 
+      setStoreLocations(storeLocations.map(loc =>
         loc.id === updatedLocation.id ? updatedLocation : loc
       ));
       setEditingLocation(null);
@@ -165,7 +161,7 @@ const StoreLocationPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return;
-    
+
     setIsDeleting(true);
     try {
       await storeLocationRepository.deleteStoreLocation(deleteId);
@@ -198,7 +194,7 @@ const StoreLocationPage: React.FC = () => {
 
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Store Locations Management</h1>
-        <button 
+        <button
           className="btn btn-primary"
           onClick={() => setShowAddModal(true)}
         >
@@ -234,18 +230,18 @@ const StoreLocationPage: React.FC = () => {
                     <td>{location.id}</td>
                     <td>{location.address}</td>
                     <td>
-                      {storeBrands.find(brand => brand.id === location.store_brand.id)?.name || 'Unknown Brand'}
+                      {location.store_brand.name || 'Unknown Brand'}
                     </td>
                     <td>{new Date(location.created_at).toLocaleDateString()}</td>
                     <td>
                       <div className="btn-group">
-                        <button 
+                        <button
                           className="btn btn-sm btn-outline-primary"
                           onClick={() => handleEditClick(location)}
                         >
                           Edit
                         </button>
-                        <button 
+                        <button
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => handleDeleteClick(location.id)}
                         >
@@ -275,9 +271,9 @@ const StoreLocationPage: React.FC = () => {
               <form onSubmit={handleCreateLocation}>
                 <div className="modal-header">
                   <h5 className="modal-title">Add New Store Location</h5>
-                  <button 
-                    type="button" 
-                    className="btn-close" 
+                  <button
+                    type="button"
+                    className="btn-close"
                     onClick={() => setShowAddModal(false)}
                     disabled={isCreating}
                   />
@@ -313,16 +309,16 @@ const StoreLocationPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
                     onClick={() => setShowAddModal(false)}
                     disabled={isCreating}
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary"
                     disabled={isCreating || !newLocationAddress.trim() || !newLocationStoreBrandId}
                   >
@@ -350,9 +346,9 @@ const StoreLocationPage: React.FC = () => {
               <form onSubmit={handleEditSubmit}>
                 <div className="modal-header">
                   <h5 className="modal-title">Edit Store Location</h5>
-                  <button 
-                    type="button" 
-                    className="btn-close" 
+                  <button
+                    type="button"
+                    className="btn-close"
                     onClick={() => setEditingLocation(null)}
                     disabled={isEditing}
                   />
@@ -388,16 +384,16 @@ const StoreLocationPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
                     onClick={() => setEditingLocation(null)}
                     disabled={isEditing}
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary"
                     disabled={isEditing || !editAddress.trim() || !editStoreBrandId}
                   >
@@ -424,9 +420,9 @@ const StoreLocationPage: React.FC = () => {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Confirm Delete</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
+                <button
+                  type="button"
+                  className="btn-close"
                   onClick={() => setDeleteId(null)}
                   disabled={isDeleting}
                 />
@@ -436,17 +432,17 @@ const StoreLocationPage: React.FC = () => {
                 <p className="text-muted">This action cannot be undone.</p>
               </div>
               <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
+                <button
+                  type="button"
+                  className="btn btn-secondary"
                   onClick={() => setDeleteId(null)}
                   disabled={isDeleting}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="button" 
-                  className="btn btn-danger" 
+                <button
+                  type="button"
+                  className="btn btn-danger"
                   onClick={handleDeleteConfirm}
                   disabled={isDeleting}
                 >
