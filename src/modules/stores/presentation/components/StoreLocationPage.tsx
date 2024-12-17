@@ -75,12 +75,26 @@ const StoreLocationPage: React.FC = () => {
 
   const sortedLocations = useMemo(() => {
     return [...storeLocations].sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
+      let aValue: string | number = '';
+      let bValue: string | number = '';
 
-      if (sortField === 'created_at') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+      switch (sortField) {
+        case 'id':
+          aValue = a.id;
+          bValue = b.id;
+          break;
+        case 'address':
+          aValue = a.address;
+          bValue = b.address;
+          break;
+        case 'store_brand_id':
+          aValue = a.store_brand.id;
+          bValue = b.store_brand.id;
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
       }
 
       if (typeof aValue === 'string') {
@@ -119,7 +133,7 @@ const StoreLocationPage: React.FC = () => {
   const handleEditClick = (location: StoreLocation) => {
     setEditingLocation(location);
     setEditAddress(location.address);
-    setEditStoreBrandId(location.store_brand_id);
+    setEditStoreBrandId(location.store_brand.id);
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -220,7 +234,7 @@ const StoreLocationPage: React.FC = () => {
                     <td>{location.id}</td>
                     <td>{location.address}</td>
                     <td>
-                      {storeBrands.find(brand => brand.id === location.store_brand_id)?.name || 'Unknown Brand'}
+                      {storeBrands.find(brand => brand.id === location.store_brand.id)?.name || 'Unknown Brand'}
                     </td>
                     <td>{new Date(location.created_at).toLocaleDateString()}</td>
                     <td>

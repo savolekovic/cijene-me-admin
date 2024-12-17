@@ -1,9 +1,13 @@
+export interface StoreBrand {
+  id: number;
+  name: string;
+}
+
 export interface StoreLocation {
   id: number;
-  store_brand_id: number;
   address: string;
   created_at: string;
-  store_brand_name?: string;
+  store_brand: StoreBrand;
 }
 
 export interface IStoreLocationRepository {
