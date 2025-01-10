@@ -8,14 +8,16 @@ import { ProductsRepository } from '../../infrastructure/ProductsRepository';
 import { ProductsTable, SortField } from './ProductsTable';
 import { ProductFormModal } from './modals/ProductFormModal';
 import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
+import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';
 
 const productsRepository = new ProductsRepository();
+const categoriesRepository = new CategoriesRepository();
 
 type SortOrder = 'asc' | 'desc';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('id');
@@ -40,8 +42,12 @@ const ProductsPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const productsData = await productsRepository.getAllProducts();
+        const [productsData, categoriesData] = await Promise.all([
+          productsRepository.getAllProducts(),
+          categoriesRepository.getAllCategories()
+        ]);
         setProducts(productsData);
+        setCategories(categoriesData);
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
