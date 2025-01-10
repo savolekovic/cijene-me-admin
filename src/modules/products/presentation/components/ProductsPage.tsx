@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaSort, FaSortDown, FaSortUp, FaSpinner } from 'react-icons/fa';
+import { FaPlus, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { Category } from '../../../categories/domain/interfaces/ICategoriesRepository';
 import { Product } from '../../domain/interfaces/IProductsRepository';
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
+import { ProductsTable, SortField } from './ProductsTable';
+import { ProductFormModal } from './modals/ProductFormModal';
+import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
 
 const productsRepository = new ProductsRepository();
 
-type SortField = 'id' | 'name' | 'category_name' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 const ProductsPage: React.FC = () => {
@@ -20,6 +22,7 @@ const ProductsPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProductName, setNewProductName] = useState('');
+  const [newProductBarcode, setNewProductBarcode] = useState('');
   const [newProductImageUrl, setNewProductImageUrl] = useState('');
   const [newProductCategoryId, setNewProductCategoryId] = useState<number>(0);
   const [isCreating, setIsCreating] = useState(false);
@@ -27,6 +30,7 @@ const ProductsPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editName, setEditName] = useState('');
+  const [editBarcode, setEditBarcode] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editCategoryId, setEditCategoryId] = useState<number>(0);
   const [isEditing, setIsEditing] = useState(false);
@@ -62,38 +66,19 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === 'asc' ?
-      <FaSortUp className="ms-1 text-primary" /> :
-      <FaSortDown className="ms-1 text-primary" />;
-  };
-
-  const handleEditClick = (product: Product) => {
-    setEditingProduct(product);
-    setEditName(product.name);
-    setEditImageUrl(product.image_url);
-    setEditCategoryId(product.category.id);
-  };
-
-  const handleDeleteClick = (productId: number) => {
-    setDeleteId(productId);
-  };
-
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
     try {
       const newProduct = await productsRepository.createProduct(
         newProductName,
+        newProductBarcode,
         newProductImageUrl,
         newProductCategoryId
       );
       setProducts([...products, newProduct]);
-      setNewProductName('');
-      setNewProductImageUrl('');
-      setNewProductCategoryId(0);
       setShowAddModal(false);
+      resetAddForm();
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create product');
@@ -111,6 +96,7 @@ const ProductsPage: React.FC = () => {
       const updatedProduct = await productsRepository.updateProduct(
         editingProduct.id,
         editName,
+        editBarcode,
         editImageUrl,
         editCategoryId
       );
@@ -118,12 +104,27 @@ const ProductsPage: React.FC = () => {
         prod.id === updatedProduct.id ? updatedProduct : prod
       ));
       setEditingProduct(null);
+      resetEditForm();
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update product');
     } finally {
       setIsEditing(false);
     }
+  };
+
+  const resetAddForm = () => {
+    setNewProductName('');
+    setNewProductBarcode('');
+    setNewProductImageUrl('');
+    setNewProductCategoryId(0);
+  };
+
+  const resetEditForm = () => {
+    setEditName('');
+    setEditBarcode('');
+    setEditImageUrl('');
+    setEditCategoryId(0);
   };
 
   const handleDeleteConfirm = async () => {
@@ -140,6 +141,14 @@ const ProductsPage: React.FC = () => {
       setIsDeleting(false);
       setDeleteId(null);
     }
+  };
+
+  const handleEditClick = (product: Product) => {
+    setEditingProduct(product);
+    setEditName(product.name);
+    setEditBarcode(product.barcode);
+    setEditImageUrl(product.image_url);
+    setEditCategoryId(product.category.id);
   };
 
   if (isLoading) {
@@ -172,281 +181,65 @@ const ProductsPage: React.FC = () => {
 
       <div className="card">
         <div className="card-body">
-          <div className="table-responsive">
-            <table className="table table-hover">
-              <thead>
-                <tr>
-                  <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>
-                    ID {getSortIcon('id')}
-                  </th>
-                  <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>
-                    Name {getSortIcon('name')}
-                  </th>
-                  <th>Image URL</th>
-                  <th onClick={() => handleSort('category_name')} style={{ cursor: 'pointer' }}>
-                    Category {getSortIcon('category_name')}
-                  </th>
-                  <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>
-                    Created At {getSortIcon('created_at')}
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td>{product.id}</td>
-                    <td>{product.name}</td>
-                    <td>
-                      <a href={product.image_url} target="_blank" rel="noopener noreferrer">
-                        View Image
-                      </a>
-                    </td>
-                    <td>{product.category.name}</td>
-                    <td>{new Date(product.created_at).toLocaleDateString()}</td>
-                    <td>
-                      <div className="btn-group">
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => handleEditClick(product)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDeleteClick(product.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ProductsTable
+            products={products}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            onEdit={handleEditClick}
+            onDelete={setDeleteId}
+          />
+
+          {products.length === 0 && !error && (
+            <div className="text-center py-4">
+              <p className="text-muted">No products found.</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Add Product Modal */}
-      {showAddModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleCreateProduct}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Add New Product</h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => setShowAddModal(false)}
-                    disabled={isCreating}
-                  />
-                </div>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label htmlFor="productName" className="form-label">Product Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="productName"
-                      value={newProductName}
-                      onChange={(e) => setNewProductName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="imageUrl" className="form-label">Image URL</label>
-                    <input
-                      type="url"
-                      className="form-control"
-                      id="imageUrl"
-                      value={newProductImageUrl}
-                      onChange={(e) => setNewProductImageUrl(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="categoryId" className="form-label">Category</label>
-                    <select
-                      className="form-select"
-                      id="categoryId"
-                      value={newProductCategoryId}
-                      onChange={(e) => setNewProductCategoryId(Number(e.target.value))}
-                      required
-                    >
-                      <option value="">Select a category</option>
-                      {categories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowAddModal(false)}
-                    disabled={isCreating}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={isCreating || !newProductName.trim() || !newProductImageUrl.trim() || !newProductCategoryId}
-                  >
-                    {isCreating ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" />
-                        Creating...
-                      </>
-                    ) : (
-                      'Create Product'
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      { /* Add Form Modal */}
+      <ProductFormModal
+        isOpen={showAddModal}
+        mode="add"
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleCreateProduct}
+        categories={categories}
+        isProcessing={isCreating}
+        name={newProductName}
+        setName={setNewProductName}
+        barcode={newProductBarcode}
+        setBarcode={setNewProductBarcode}
+        imageUrl={newProductImageUrl}
+        setImageUrl={setNewProductImageUrl}
+        categoryId={newProductCategoryId}
+        setCategoryId={setNewProductCategoryId}
+      />
 
-      {/* Edit Product Modal */}
-      {editingProduct && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleEditSubmit}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Product</h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => setEditingProduct(null)}
-                    disabled={isEditing}
-                  />
-                </div>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label htmlFor="editProductName" className="form-label">Product Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="editProductName"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="editImageUrl" className="form-label">Image URL</label>
-                    <input
-                      type="url"
-                      className="form-control"
-                      id="editImageUrl"
-                      value={editImageUrl}
-                      onChange={(e) => setEditImageUrl(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="editCategoryId" className="form-label">Category</label>
-                    <select
-                      className="form-select"
-                      id="editCategoryId"
-                      value={editCategoryId}
-                      onChange={(e) => setEditCategoryId(Number(e.target.value))}
-                      required
-                    >
-                      <option value="">Select a category</option>
-                      {categories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setEditingProduct(null)}
-                    disabled={isEditing}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={isEditing || !editName.trim() || !editImageUrl.trim() || !editCategoryId}
-                  >
-                    {isEditing ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Changes'
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      { /* Edit Form Modal */}
+      <ProductFormModal
+        isOpen={!!editingProduct}
+        mode="edit"
+        onClose={() => setEditingProduct(null)}
+        onSubmit={handleEditSubmit}
+        categories={categories}
+        isProcessing={isEditing}
+        name={editName}
+        setName={setEditName}
+        barcode={editBarcode}
+        setBarcode={setEditBarcode}
+        imageUrl={editImageUrl}
+        setImageUrl={setEditImageUrl}
+        categoryId={editCategoryId}
+        setCategoryId={setEditCategoryId}
+      />
 
-      {/* Delete Confirmation Modal */}
-      {deleteId && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Confirm Delete</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setDeleteId(null)}
-                  disabled={isDeleting}
-                />
-              </div>
-              <div className="modal-body">
-                <p>Are you sure you want to delete this product?</p>
-                <p className="text-muted">This action cannot be undone.</p>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setDeleteId(null)}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={handleDeleteConfirm}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete Product'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };
