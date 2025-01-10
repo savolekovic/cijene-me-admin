@@ -21,10 +21,11 @@ export class ProductsRepository implements IProductsRepository {
     }
   }
 
-  async createProduct(name: string, imageUrl: string, categoryId: number): Promise<Product> {
+  async createProduct(name: string, barcode: string, imageUrl: string, categoryId: number): Promise<Product> {
     try {
       const response = await api.post('/products/', {
         name,
+        barcode,
         image_url: imageUrl,
         category_id: categoryId
       });
@@ -46,10 +47,11 @@ export class ProductsRepository implements IProductsRepository {
     }
   }
 
-  async updateProduct(productId: number, name: string, imageUrl: string, categoryId: number): Promise<Product> {
+  async updateProduct(productId: number, name: string, barcode: string, imageUrl: string, categoryId: number): Promise<Product> {
     try {
       const response = await api.put(`/products/${productId}`, {
         name,
+        barcode,
         image_url: imageUrl,
         category_id: categoryId
       });
