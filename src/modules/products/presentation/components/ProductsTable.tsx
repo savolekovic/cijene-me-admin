@@ -64,7 +64,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                   View Image
                 </a>
               </td>
-              <td>{product.category.name}</td>
+              <td>{product.category?.name || 'N/A'}</td>
               <td>{new Date(product.created_at).toLocaleDateString()}</td>
               <td className="text-end">
                 <div className="btn-group">

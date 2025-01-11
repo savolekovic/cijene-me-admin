@@ -82,7 +82,17 @@ const ProductsPage: React.FC = () => {
         newProductImageUrl,
         newProductCategoryId
       );
-      setProducts([...products, newProduct]);
+      
+      // Find the category object
+      const category = categories.find(cat => cat.id === newProductCategoryId);
+      
+      // Add the category to the product object
+      const productWithCategory = {
+        ...newProduct,
+        category: category || { id: newProductCategoryId, name: 'Unknown' }
+      };
+      
+      setProducts([...products, productWithCategory]);
       setShowAddModal(false);
       resetAddForm();
       setError('');
@@ -149,6 +159,22 @@ const ProductsPage: React.FC = () => {
     }
   };
 
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+    setNewProductName('');
+    setNewProductBarcode('');
+    setNewProductImageUrl('');
+    setNewProductCategoryId(0);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingProduct(null);
+    setEditName('');
+    setEditBarcode('');
+    setEditImageUrl('');
+    setEditCategoryId(0);
+  };
+
   const handleEditClick = (product: Product) => {
     setEditingProduct(product);
     setEditName(product.name);
@@ -208,7 +234,7 @@ const ProductsPage: React.FC = () => {
       <ProductFormModal
         isOpen={showAddModal}
         mode="add"
-        onClose={() => setShowAddModal(false)}
+        onClose={handleCloseAddModal}
         onSubmit={handleCreateProduct}
         categories={categories}
         isProcessing={isCreating}
@@ -226,7 +252,7 @@ const ProductsPage: React.FC = () => {
       <ProductFormModal
         isOpen={!!editingProduct}
         mode="edit"
-        onClose={() => setEditingProduct(null)}
+        onClose={handleCloseEditModal}
         onSubmit={handleEditSubmit}
         categories={categories}
         isProcessing={isEditing}

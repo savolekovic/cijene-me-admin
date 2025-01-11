@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Category } from '../../../../categories/domain/interfaces/ICategoriesRepository';
+import { validateEANBarcode, validateProductName, validateImageUrl } from '../../../../shared/utils/validation';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -34,6 +35,39 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   categoryId,
   setCategoryId
 }) => {
+  const [nameError, setNameError] = useState<string>('');
+  const [barcodeError, setBarcodeError] = useState<string>('');
+  const [imageUrlError, setImageUrlError] = useState<string>('');
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setName(newName);
+    const error = validateProductName(newName);
+    setNameError(error || '');
+  };
+
+  const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newBarcode = e.target.value;
+    setBarcode(newBarcode);
+    
+    if (newBarcode.trim() === '') {
+      setBarcodeError('Barcode is required');
+    } else if (!/^\d{8}$|^\d{13}$/.test(newBarcode)) {
+      setBarcodeError('Barcode must be either 8 or 13 digits');
+    } else if (!validateEANBarcode(newBarcode)) {
+      setBarcodeError('Invalid EAN barcode check digit');
+    } else {
+      setBarcodeError('');
+    }
+  };
+
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUrl = e.target.value;
+    setImageUrl(newUrl);
+    const error = validateImageUrl(newUrl);
+    setImageUrlError(error || '');
+  };
+
   if (!isOpen) return null;
 
   const title = mode === 'add' ? 'Add New Product' : 'Edit Product';
@@ -59,37 +93,55 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 <label htmlFor="name" className="form-label">Product Name</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${nameError ? 'is-invalid' : ''}`}
                   id="name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={handleNameChange}
                   required
                   disabled={isProcessing}
+                  placeholder="Enter product name"
                 />
+                {nameError && (
+                  <div className="invalid-feedback">
+                    {nameError}
+                  </div>
+                )}
               </div>
               <div className="mb-3">
-                <label htmlFor="barcode" className="form-label">Barcode</label>
+                <label htmlFor="barcode" className="form-label">Barcode (EAN-8 or EAN-13)</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${barcodeError ? 'is-invalid' : ''}`}
                   id="barcode"
                   value={barcode}
-                  onChange={(e) => setBarcode(e.target.value)}
+                  onChange={handleBarcodeChange}
                   required
                   disabled={isProcessing}
+                  placeholder="Enter 8 or 13 digit barcode"
                 />
+                {barcodeError && (
+                  <div className="invalid-feedback">
+                    {barcodeError}
+                  </div>
+                )}
               </div>
               <div className="mb-3">
                 <label htmlFor="imageUrl" className="form-label">Image URL</label>
                 <input
                   type="url"
-                  className="form-control"
+                  className={`form-control ${imageUrlError ? 'is-invalid' : ''}`}
                   id="imageUrl"
                   value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
+                  onChange={handleImageUrlChange}
                   required
                   disabled={isProcessing}
+                  placeholder="Enter image URL"
                 />
+                {imageUrlError && (
+                  <div className="invalid-feedback">
+                    {imageUrlError}
+                  </div>
+                )}
               </div>
               <div className="mb-3">
                 <label htmlFor="categoryId" className="form-label">Category</label>
@@ -122,7 +174,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={isProcessing || !name.trim() || !imageUrl.trim() || !categoryId}
+                disabled={
+                  isProcessing || 
+                  !!nameError || 
+                  !!barcodeError || 
+                  !!imageUrlError || 
+                  !name.trim() || 
+                  !barcode.trim() || 
+                  !imageUrl.trim() || 
+                  !categoryId
+                }
               >
                 {isProcessing ? (
                   <>
