@@ -1,0 +1,203 @@
+/* Mobile-friendly styles */
+@media (max-width: 768px) {
+  /* Increase touch targets */
+  .btn {
+    padding: 0.625rem 1rem;
+  }
+
+  /* Improve form inputs on mobile */
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* Add some breathing room */
+  .container-fluid {
+    padding-bottom: 5rem;
+  }
+
+  /* Make modals more touch-friendly */
+  .modal-header {
+    padding: 1rem;
+  }
+
+  .modal-body {
+    padding: 1.25rem;
+  }
+
+  .modal-footer {
+    padding: 1rem;
+  }
+
+  /* Improve table readability on mobile */
+  .table {
+    font-size: 0.875rem;
+  }
+
+  /* Sidebar mobile styles */
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    overflow-y: auto;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+  }
+
+  /* Prevent body scroll when sidebar is open */
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  /* Make the toggle button more prominent */
+  .btn-dark {
+    padding: 0.5rem 0.75rem;
+    font-size: 1.25rem;
+  }
+}
+
+/* Add pull-to-refresh visual indicator */
+.refresh-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #007bff;
+  transform-origin: 0 50%;
+  z-index: 1000;
+}
+
+/* Add smooth transitions */
+.sidebar {
+  transition: left 0.3s ease;
+}
+
+.sidebar.open + .main-content {
+  margin-left: 0;
+}
+
+/* Improve nav links touch targets */
+.nav-link {
+  padding: 0.75rem 1rem;
+  margin: 0.25rem 0;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.active-nav-link {
+  background: linear-gradient(45deg, #007bff, #0056b3) !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.active-nav-link:hover {
+  background: linear-gradient(45deg, #0056b3, #004085) !important;
+  transform: translateY(-1px);
+}
+
+/* Sidebar container */
+.sidebar {
+  background: linear-gradient(180deg, #1a1a1a, #2d2d2d) !important;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Improve logout button */
+.btn-outline-light {
+  border-width: 2px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-light:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Improve dividers */
+hr {
+  opacity: 0.1;
+  margin: 1.5rem 0;
+}
+
+/* Improve mobile toggle button */
+.btn-dark {
+  background: linear-gradient(45deg, #343a40, #1d2124);
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-dark:hover {
+  background: linear-gradient(45deg, #23272b, #1d2124);
+  transform: translateY(-1px);
+}
+
+/* Mobile card styles */
+@media (max-width: 768px) {
+  .card {
+    border: none;
+    border-radius: 1rem;
+    transition: transform 0.2s ease;
+  }
+
+  .card:active {
+    transform: scale(0.98);
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+
+  .btn-outline-primary, .btn-outline-danger {
+    padding: 0.625rem;
+    font-weight: 500;
+  }
+
+  /* Add subtle hover effect */
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+  }
+
+  /* Improve spacing between cards */
+  .card + .card {
+    margin-top: 1rem;
+  }
+
+  /* Improve text readability */
+  .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .text-muted {
+    font-size: 0.9rem;
+  }
+}
+
+/* Add loading skeleton animation */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+  border-radius: 4px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+} 
