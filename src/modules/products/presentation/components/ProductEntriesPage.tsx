@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaSpinner } from 'react-icons/fa';
+import { FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
+import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository';
 import { ProductEntriesRepository } from '../../infrastructure/ProductEntriesRepository';
+import { useDropdownData } from '../hooks/useDropdownData';
 import { useProductEntries } from '../hooks/useProductEntries';
 import { useProductEntryModals } from '../hooks/useProductEntryModals';
-import { useDropdownData } from '../hooks/useDropdownData';
 import { useSorting } from '../hooks/useSorting';
 import { ProductEntriesTable } from './ProductEntriesTable';
+import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { ProductEntryFormModal } from './modals/ProductEntryFormModal';
-import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
-import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository';
 
 const productEntriesRepository = new ProductEntriesRepository();
 
@@ -149,11 +150,7 @@ const ProductEntriesPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
@@ -211,9 +208,11 @@ const ProductEntriesPage: React.FC = () => {
 
       <DeleteConfirmationModal
         isOpen={!!deleteId}
+        title="Delete Product Entry"
+        message="Are you sure you want to delete this product entry?"
+        isDeleting={isDeleting}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDeleteConfirm}
-        isDeleting={isDeleting}
       />
     </div>
   );
