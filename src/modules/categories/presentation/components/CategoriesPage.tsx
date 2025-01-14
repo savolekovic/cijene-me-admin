@@ -1,9 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { FaPlus, FaSpinner, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import { CategoriesRepository } from '../../infrastructure/CategoriesRepository';
-import { Category } from '../../domain/interfaces/ICategoriesRepository';
-import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { FaPlus, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import { Category } from '../../domain/interfaces/ICategoriesRepository';
+import { CategoriesRepository } from '../../infrastructure/CategoriesRepository';
+import { CategoriesTable } from './CategoriesTable';
+import { CategoryFormModal } from './modals/CategoryFormModal';
+import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 
 const categoriesRepository = new CategoriesRepository();
 
@@ -16,37 +19,44 @@ const CategoriesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  
+  // Add Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Edit Modal State
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editName, setEditName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await categoriesRepository.getAllCategories();
-        console.log('Fetched categories:', data);  // Debug log
-        setCategories(data);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes('Unauthorized')) {
-          logout();
-          navigate('/');
-        } else {
-          setError(err instanceof Error ? err.message : 'An error occurred');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Delete Modal State
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
     fetchCategories();
-  }, [logout, navigate]);
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoriesRepository.getAllCategories();
+      setCategories(data);
+      setError('');
+    } catch (err) {
+      if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
+        logout();
+        navigate('/');
+      } else {
+        setError('Failed to load categories');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -57,59 +67,50 @@ const CategoriesPage: React.FC = () => {
     }
   };
 
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === 'asc' ? 
-      <FaSortUp className="ms-1 text-primary" /> : 
-      <FaSortDown className="ms-1 text-primary" />;
-  };
-
-  const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
-
-      if (sortField === 'created_at') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
-      }
-
-      if (typeof aValue === 'string') {
-        aValue = aValue.toLowerCase();
-      }
-      if (typeof bValue === 'string') {
-        bValue = bValue.toLowerCase();
-      }
-
-      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [categories, sortField, sortOrder]);
-
-  const handleCreateCategory = async (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
     try {
       const newCategory = await categoriesRepository.createCategory(newCategoryName);
-      setCategories([...categories, newCategory]);
-      setNewCategoryName('');
+      setCategories(prev => [...prev, newCategory]);
       setShowAddModal(false);
-      setError('');
+      setNewCategoryName('');
     } catch (err) {
-      if (err instanceof Error && err.message.includes('Unauthorized')) {
-        logout();
-        navigate('/');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to create category');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to create category');
     } finally {
       setIsCreating(false);
     }
   };
 
-  const handleDeleteClick = (categoryId: number) => {
-    setDeleteId(categoryId);
+  const handleEdit = (category: Category) => {
+    setEditingCategory(category);
+    setEditName(category.name);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory) return;
+    
+    setIsEditing(true);
+    try {
+      const updatedCategory = await categoriesRepository.updateCategory(
+        editingCategory.id,
+        editName
+      );
+      setCategories(prev => 
+        prev.map(cat => cat.id === updatedCategory.id ? updatedCategory : cat)
+      );
+      setEditingCategory(null);
+      setEditName('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update category');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    setDeleteId(id);
   };
 
   const handleDeleteConfirm = async () => {
@@ -118,40 +119,12 @@ const CategoriesPage: React.FC = () => {
     setIsDeleting(true);
     try {
       await categoriesRepository.deleteCategory(deleteId);
-      const updatedCategories = categories.filter(cat => cat.id !== deleteId);
-      setCategories(updatedCategories);
-      console.log('Categories after delete:', updatedCategories);
-      setError('');
+      setCategories(prev => prev.filter(cat => cat.id !== deleteId));
+      setDeleteId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete category');
     } finally {
       setIsDeleting(false);
-      setDeleteId(null);
-    }
-  };
-
-  const handleEditClick = (category: Category) => {
-    setEditingCategory(category);
-    setEditName(category.name);
-  };
-
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingCategory || !editName.trim()) return;
-
-    setIsEditing(true);
-    try {
-      const updatedCategory = await categoriesRepository.updateCategory(editingCategory.id, editName.trim());
-      setCategories(categories.map(cat => 
-        cat.id === updatedCategory.id ? updatedCategory : cat
-      ));
-      setEditingCategory(null);
-      setEditName('');
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update category');
-    } finally {
-      setIsEditing(false);
     }
   };
 
@@ -162,9 +135,8 @@ const CategoriesPage: React.FC = () => {
       </div>
     );
   }
-
   return (
-    <div className="container-fluid p-4">
+    <div className="container-fluid px-4">
       {error && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           {error}
@@ -173,8 +145,8 @@ const CategoriesPage: React.FC = () => {
       )}
 
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Categories Management</h1>
-        <button 
+        <h1 className="h3 mb-0">Categories</h1>
+        <button
           className="btn btn-primary"
           onClick={() => setShowAddModal(true)}
         >
@@ -183,225 +155,43 @@ const CategoriesPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-responsive">
-            <table className="table table-hover">
-              <thead>
-                <tr>
-                  <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>
-                    ID {getSortIcon('id')}
-                  </th>
-                  <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>
-                    Name {getSortIcon('name')}
-                  </th>
-                  <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>
-                    Created At {getSortIcon('created_at')}
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedCategories.map((category) => (
-                  <tr key={category.id}>
-                    <td>{category.id}</td>
-                    <td>{category.name}</td>
-                    <td>{new Date(category.created_at).toLocaleDateString()}</td>
-                    <td>
-                      <div className="btn-group">
-                        <button 
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => handleEditClick(category)}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDeleteClick(category.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <CategoriesTable
+        categories={categories}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
-          {categories.length === 0 && !error && (
-            <div className="text-center py-4">
-              <p className="text-muted">No categories found.</p>
-            </div>
-          )}
-        </div>
-      </div>
+      <CategoryFormModal
+        isOpen={showAddModal}
+        mode="add"
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleAddSubmit}
+        isProcessing={isCreating}
+        name={newCategoryName}
+        setName={setNewCategoryName}
+      />
 
-      {/* Add Category Modal */}
-      {showAddModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleCreateCategory}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Add New Category</h5>
-                  <button 
-                    type="button" 
-                    className="btn-close" 
-                    onClick={() => setShowAddModal(false)}
-                    disabled={isCreating}
-                  />
-                </div>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label htmlFor="categoryName" className="form-label">Category Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="categoryName"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      required
-                      disabled={isCreating}
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={() => setShowAddModal(false)}
-                    disabled={isCreating}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary"
-                    disabled={isCreating || !newCategoryName.trim()}
-                  >
-                    {isCreating ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" />
-                        Creating...
-                      </>
-                    ) : (
-                      'Create Category'
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      <CategoryFormModal
+        isOpen={!!editingCategory}
+        mode="edit"
+        onClose={() => setEditingCategory(null)}
+        onSubmit={handleEditSubmit}
+        isProcessing={isEditing}
+        name={editName}
+        setName={setEditName}
+      />
 
-      {/* Delete Confirmation Modal */}
-      {deleteId && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Confirm Delete</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setDeleteId(null)}
-                  disabled={isDeleting}
-                />
-              </div>
-              <div className="modal-body">
-                <p>Are you sure you want to delete this category?</p>
-                <p className="text-muted">This action cannot be undone.</p>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={() => setDeleteId(null)}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-danger" 
-                  onClick={handleDeleteConfirm}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete Category'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Category Modal */}
-      {editingCategory && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleEditSubmit}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Category</h5>
-                  <button 
-                    type="button" 
-                    className="btn-close" 
-                    onClick={() => setEditingCategory(null)}
-                    disabled={isEditing}
-                  />
-                </div>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label htmlFor="editCategoryName" className="form-label">Category Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="editCategoryName"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      required
-                      disabled={isEditing}
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={() => setEditingCategory(null)}
-                    disabled={isEditing}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary"
-                    disabled={isEditing || !editName.trim()}
-                  >
-                    {isEditing ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Changes'
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+<DeleteConfirmationModal
+        isOpen={!!deleteId}
+        title="Delete Category"
+        message="Are you sure you want to delete this category?"
+        isDeleting={isDeleting}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 };
