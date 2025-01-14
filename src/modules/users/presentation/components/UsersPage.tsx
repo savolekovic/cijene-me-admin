@@ -3,7 +3,11 @@ import { User } from '../../domain/interfaces/IUsersRepository';
 import { UsersRepository } from '../../infrastructure/UsersRepository';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { FaSearch, FaSpinner, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaSearch } from 'react-icons/fa';
+import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
+import UsersTable from './tables/UsersTable';
+import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
+import ChangeRoleModal from './modals/ChangeRoleModal';
 
 const usersRepository = new UsersRepository();
 
@@ -96,30 +100,10 @@ const UsersPage: React.FC = () => {
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      // If clicking the same field, toggle order
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      // If clicking a new field, set it as the sort field and default to asc
       setSortField(field);
       setSortOrder('asc');
-    }
-  };
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === 'asc' ? 
-      <FaSortUp className="ms-1 text-primary" /> : 
-      <FaSortDown className="ms-1 text-primary" />;
-  };
-
-  const getRoleBadgeClass = (role: string) => {
-    switch (role.toLowerCase()) {
-      case 'admin':
-        return 'badge rounded-pill bg-danger px-3 py-2 text-uppercase';
-      case 'moderator':
-        return 'badge rounded-pill bg-warning px-3 py-2 text-uppercase';
-      default:
-        return 'badge rounded-pill bg-primary px-3 py-2 text-uppercase';
     }
   };
 
@@ -133,7 +117,6 @@ const UsersPage: React.FC = () => {
     setDeletingUsers(prev => [...prev, deleteUserId]);
     try {
       await usersRepository.deleteUser(deleteUserId);
-      // Remove user from state
       setUsers(users.filter(user => user.id !== deleteUserId));
       setFilteredUsers(filteredUsers.filter(user => user.id !== deleteUserId));
     } catch (err) {
@@ -154,12 +137,9 @@ const UsersPage: React.FC = () => {
     
     setIsChangingRole(true);
     try {
-      console.log('Current role:', changeRoleUser.role);  // Debug log
       const newRole = changeRoleUser.role.toLowerCase() === 'moderator' ? 'user' : 'moderator';
-      console.log('New role:', newRole);  // Debug log
       const updatedUser = await usersRepository.changeRole(changeRoleUser.id, newRole);
       
-      // Update users list with the updated user
       setUsers(users.map(user => 
         user.id === updatedUser.id ? updatedUser : user
       ));
@@ -167,7 +147,6 @@ const UsersPage: React.FC = () => {
         user.id === updatedUser.id ? updatedUser : user
       ));
     } catch (err) {
-      console.error('Change role error:', err);  // Debug log
       setError(err instanceof Error ? err.message : 'Failed to change user role');
       setTimeout(() => setError(''), 3000);
     } finally {
@@ -177,13 +156,7 @@ const UsersPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="container-fluid p-4">
-        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
-          <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error) {
@@ -231,179 +204,34 @@ const UsersPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="table-responsive">
-            <table className="table table-hover">
-              <thead className="table-light">
-                <tr>
-                  <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>
-                    ID {getSortIcon('id')}
-                  </th>
-                  <th onClick={() => handleSort('full_name')} style={{ cursor: 'pointer' }}>
-                    Full Name {getSortIcon('full_name')}
-                  </th>
-                  <th onClick={() => handleSort('email')} style={{ cursor: 'pointer' }}>
-                    Email {getSortIcon('email')}
-                  </th>
-                  <th onClick={() => handleSort('role')} style={{ cursor: 'pointer' }}>
-                    Role {getSortIcon('role')}
-                  </th>
-                  <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>
-                    Created At {getSortIcon('created_at')}
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.isArray(filteredUsers) && filteredUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.id}</td>
-                    <td>{user.full_name}</td>
-                    <td>{user.email}</td>
-                    <td>
-                      <span className={getRoleBadgeClass(user.role)} style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                    <td>
-                      <div className="btn-group">
-                        <button 
-                          className="btn btn-sm btn-outline-warning"
-                          title="Change user role"
-                          onClick={() => handleChangeRoleClick(user)}
-                          disabled={user.role === 'admin'}
-                        >
-                          Change Role
-                        </button>
-                        <button 
-                          className="btn btn-sm btn-outline-danger"
-                          title="Delete user"
-                          onClick={() => handleDeleteClick(user.id)}
-                          disabled={deletingUsers.includes(user.id)}
-                        >
-                          {deletingUsers.includes(user.id) ? (
-                            <>
-                              <span className="spinner-border spinner-border-sm me-1" />
-                              Deleting...
-                            </>
-                          ) : (
-                            'Delete'
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {(!Array.isArray(filteredUsers) || filteredUsers.length === 0) && (
-            <div className="text-center py-4">
-              <p className="text-muted">No users found matching your search criteria.</p>
-            </div>
-          )}
+          <UsersTable 
+            users={filteredUsers}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            onDelete={handleDeleteClick}
+            onChangeRole={handleChangeRoleClick}
+            deletingUsers={deletingUsers}
+          />
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteUserId && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Confirm Delete</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setDeleteUserId(null)}
-                  disabled={deletingUsers.includes(deleteUserId)}
-                />
-              </div>
-              <div className="modal-body">
-                <p>Are you sure you want to delete this user?</p>
-                <p className="text-muted">This action cannot be undone.</p>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={() => setDeleteUserId(null)}
-                  disabled={deletingUsers.includes(deleteUserId)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-danger" 
-                  onClick={handleDeleteConfirm}
-                  disabled={deletingUsers.includes(deleteUserId)}
-                >
-                  {deletingUsers.includes(deleteUserId) ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete User'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal 
+        isOpen={deleteUserId !== null}
+        title="Delete User"
+        message="Are you sure you want to delete this user?"
+        isDeleting={deletingUsers.includes(deleteUserId || -1)}
+        onClose={() => setDeleteUserId(null)}
+        onConfirm={handleDeleteConfirm}
+      />
 
-      {/* Change Role Modal */}
-      {changeRoleUser && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Confirm Role Change</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setChangeRoleUser(null)}
-                  disabled={isChangingRole}
-                />
-              </div>
-              <div className="modal-body">
-                <p>
-                  Are you sure you want to change {changeRoleUser.full_name}'s role from{' '}
-                  <strong>{changeRoleUser.role}</strong> to{' '}
-                  <strong>{changeRoleUser.role.toLowerCase() === 'moderator' ? 'User' : 'Moderator'}</strong>?
-                </p>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={() => setChangeRoleUser(null)}
-                  disabled={isChangingRole}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-warning" 
-                  onClick={handleChangeRoleConfirm}
-                  disabled={isChangingRole}
-                >
-                  {isChangingRole ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Changing Role...
-                    </>
-                  ) : (
-                    'Change Role'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ChangeRoleModal 
+        isOpen={changeRoleUser !== null}
+        user={changeRoleUser}
+        isChanging={isChangingRole}
+        onClose={() => setChangeRoleUser(null)}
+        onConfirm={handleChangeRoleConfirm}
+      />
     </div>
   );
 };
