@@ -9,7 +9,7 @@ import CategoriesPage from './modules/categories/presentation/components/Categor
 import ProductsPage from './modules/products/presentation/components/ProductsPage';
 import ProductEntriesPage from './modules/products/presentation/components/ProductEntriesPage';
 import StoreBrandPage from './modules/stores/presentation/components/StoreBrandPage';
-import StoreLocationPage from './modules/stores/presentation/components/StoreLocationPage';
+import StoreLocationsPage from './modules/stores/presentation/components/StoreLocationsPage';
 
 interface ProtectedRouteProps {
   children: ReactElement;
@@ -59,7 +59,7 @@ function App() {
             <Route path="products" element={<ProductsPage />} />
             <Route path="product-entries" element={<ProductEntriesPage />} />
             <Route path="store-brands" element={<StoreBrandPage />} />
-            <Route path="store-locations" element={<StoreLocationPage />} />
+            <Route path="store-locations" element={<StoreLocationsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
