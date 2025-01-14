@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaSpinner } from 'react-icons/fa';
+import { FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { Category } from '../../../categories/domain/interfaces/ICategoriesRepository';
@@ -7,8 +7,9 @@ import { Product } from '../../domain/interfaces/IProductsRepository';
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
 import { ProductsTable, SortField } from './ProductsTable';
 import { ProductFormModal } from './modals/ProductFormModal';
-import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
+import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';
+import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
 
 const productsRepository = new ProductsRepository();
 const categoriesRepository = new CategoriesRepository();
@@ -184,15 +185,11 @@ const ProductsPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className="container-fluid p-4">
+    <div className="container-fluid px-3 px-sm-4 py-4">
       {error && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           {error}
@@ -200,10 +197,10 @@ const ProductsPage: React.FC = () => {
         </div>
       )}
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Products Management</h1>
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
+        <h1 className="h3 mb-0">Products Management</h1>
         <button
-          className="btn btn-primary"
+          className="btn btn-primary w-100 w-sm-auto"
           onClick={() => setShowAddModal(true)}
         >
           <FaPlus className="me-2" />
@@ -266,11 +263,13 @@ const ProductsPage: React.FC = () => {
         setCategoryId={setEditCategoryId}
       />
 
-      <DeleteConfirmationModal
+      <DeleteConfirmationModal 
         isOpen={!!deleteId}
+        title="Delete Product"
+        message="Are you sure you want to delete this product?"
+        isDeleting={isDeleting}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDeleteConfirm}
-        isDeleting={isDeleting}
       />
     </div>
   );

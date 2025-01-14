@@ -76,7 +76,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog">
+      <div className="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div className="modal-content">
           <form onSubmit={onSubmit}>
             <div className="modal-header">
@@ -162,10 +162,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 </select>
               </div>
             </div>
-            <div className="modal-footer">
+            <div className="modal-footer flex-column flex-sm-row">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-secondary w-100 w-sm-auto mb-2 mb-sm-0"
                 onClick={onClose}
                 disabled={isProcessing}
               >
@@ -173,7 +173,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="btn btn-primary w-100 w-sm-auto"
                 disabled={
                   isProcessing || 
                   !!nameError || 
