@@ -159,9 +159,9 @@ const UsersPage: React.FC = () => {
     return <LoadingSpinner />;
   }
 
-  if (error) {
-    return (
-      <div className="container-fluid p-4">
+  return (
+    <div className="container-fluid px-3 px-sm-4 py-4">
+      {error && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           {error}
           <button 
@@ -170,37 +170,35 @@ const UsersPage: React.FC = () => {
             onClick={() => setError('')}
           />
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="container-fluid p-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Users Management</h1>
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
+        <h1 className="h3 mb-0">Users Management</h1>
       </div>
 
       <div className="card">
         <div className="card-body">
-          <div className="row mb-4">
-            <div className="col-md-6">
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-sm-8 col-md-6">
               <div className="input-group">
-                <span className="input-group-text">
-                  <FaSearch />
+                <span className="input-group-text bg-light border-end-0">
+                  <FaSearch className="text-muted" />
                 </span>
                 <input
                   type="text"
-                  className="form-control"
-                  placeholder="Search users..."
+                  className="form-control border-start-0 ps-0"
+                  placeholder="Search users by name, email or role..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            <div className="col-md-6 text-end">
-              <span className="text-muted">
-                Total Users: {filteredUsers.length}
-              </span>
+            <div className="col-12 col-sm-4 col-md-6">
+              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
+                <span className="badge bg-secondary">
+                  Total Users: {filteredUsers.length}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -213,6 +211,14 @@ const UsersPage: React.FC = () => {
             onChangeRole={handleChangeRoleClick}
             deletingUsers={deletingUsers}
           />
+
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-4">
+              <p className="text-muted mb-0">
+                {searchTerm ? 'No users found matching your search.' : 'No users found.'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
