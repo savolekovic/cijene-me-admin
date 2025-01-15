@@ -134,7 +134,7 @@ const StoreBrandPage: React.FC = () => {
   }
 
   return (
-    <div className="container-fluid px-4">
+    <div className="container-fluid px-3 px-sm-4 py-4">
       {error && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           {error}
@@ -142,10 +142,10 @@ const StoreBrandPage: React.FC = () => {
         </div>
       )}
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">Store Brands</h1>
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
+        <h1 className="h3 mb-0">Store Brands Management</h1>
         <button
-          className="btn btn-primary"
+          className="btn btn-primary w-100 w-sm-auto"
           onClick={() => setShowAddModal(true)}
         >
           <FaPlus className="me-2" />
@@ -153,14 +153,24 @@ const StoreBrandPage: React.FC = () => {
         </button>
       </div>
 
-      <StoreBrandsTable
-        storeBrands={storeBrands}
-        sortField={sortField}
-        sortOrder={sortOrder}
-        onSort={handleSort}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <div className="card">
+        <div className="card-body">
+          <StoreBrandsTable
+            storeBrands={storeBrands}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+
+          {storeBrands.length === 0 && !error && (
+            <div className="text-center py-4">
+              <p className="text-muted mb-0">No store brands found.</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       <StoreBrandFormModal
         isOpen={showAddModal}
