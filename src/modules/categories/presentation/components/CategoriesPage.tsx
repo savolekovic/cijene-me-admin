@@ -135,8 +135,9 @@ const CategoriesPage: React.FC = () => {
       </div>
     );
   }
+
   return (
-    <div className="container-fluid px-4">
+    <div className="container-fluid px-3 px-sm-4 py-4">
       {error && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           {error}
@@ -144,10 +145,10 @@ const CategoriesPage: React.FC = () => {
         </div>
       )}
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">Categories</h1>
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
+        <h1 className="h3 mb-0">Categories Management</h1>
         <button
-          className="btn btn-primary"
+          className="btn btn-primary w-100 w-sm-auto"
           onClick={() => setShowAddModal(true)}
         >
           <FaPlus className="me-2" />
@@ -155,14 +156,24 @@ const CategoriesPage: React.FC = () => {
         </button>
       </div>
 
-      <CategoriesTable
-        categories={categories}
-        sortField={sortField}
-        sortOrder={sortOrder}
-        onSort={handleSort}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <div className="card">
+        <div className="card-body">
+          <CategoriesTable
+            categories={categories}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+
+          {categories.length === 0 && !error && (
+            <div className="text-center py-4">
+              <p className="text-muted">No categories found.</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       <CategoryFormModal
         isOpen={showAddModal}
@@ -184,7 +195,7 @@ const CategoriesPage: React.FC = () => {
         setName={setEditName}
       />
 
-<DeleteConfirmationModal
+      <DeleteConfirmationModal
         isOpen={!!deleteId}
         title="Delete Category"
         message="Are you sure you want to delete this category?"
