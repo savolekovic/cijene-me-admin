@@ -137,6 +137,8 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         localStorage.removeItem('auth');
+        // Dispatch an event to notify about authentication failure
+        window.dispatchEvent(new CustomEvent('auth-error', { detail: refreshError }));
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
