@@ -14,7 +14,7 @@ export interface Product {
 
 export interface IProductsRepository {
   getAllProducts(): Promise<Product[]>;
-  createProduct(name: string, barcode: string, imageUrl: string, categoryId: number): Promise<Product>;
-  updateProduct(productId: number, name: string, barcode: string, imageUrl: string, categoryId: number): Promise<Product>;
+  createProduct(name: string, barcode: string, image: File, categoryId: number): Promise<Product>;
+  updateProduct(productId: number, name: string, barcode: string, image: File | null, categoryId: number): Promise<Product>;
   deleteProduct(productId: number): Promise<void>;
 } 

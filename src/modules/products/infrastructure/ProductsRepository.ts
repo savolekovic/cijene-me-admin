@@ -1,4 +1,4 @@
-import { api } from '../../../services/api';
+import { api, uploadApi, createFormData } from '../../../services/api';
 import { IProductsRepository, Product } from '../domain/interfaces/IProductsRepository';
 import axios from 'axios';
 
@@ -21,14 +21,17 @@ export class ProductsRepository implements IProductsRepository {
     }
   }
 
-  async createProduct(name: string, barcode: string, imageUrl: string, categoryId: number): Promise<Product> {
+  async createProduct(name: string, barcode: string, image: File, categoryId: number): Promise<Product> {
     try {
-      const response = await api.post('/products/', {
-        name,
-        barcode,
-        image_url: imageUrl,
-        category_id: categoryId
-      });
+      // Create FormData directly here for better control
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('barcode', barcode);
+      formData.append('category_id', String(categoryId));
+      formData.append('image', image);
+
+      // Make request without setting any headers - let axios handle it
+      const response = await uploadApi.post('/products/', formData);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -39,7 +42,7 @@ export class ProductsRepository implements IProductsRepository {
         } else if (error.response?.status === 404) {
           throw new Error("Category not found");
         } else if (error.response?.status === 400) {
-          throw new Error("Product name already exists");
+          throw new Error(error.response.data?.message || "Invalid data provided");
         }
         throw new Error(error.response?.data?.message || 'Failed to create product');
       }
@@ -47,14 +50,21 @@ export class ProductsRepository implements IProductsRepository {
     }
   }
 
-  async updateProduct(productId: number, name: string, barcode: string, imageUrl: string, categoryId: number): Promise<Product> {
+  async updateProduct(productId: number, name: string, barcode: string, image: File | null, categoryId: number): Promise<Product> {
     try {
-      const response = await api.put(`/products/${productId}`, {
-        name,
-        barcode,
-        image_url: imageUrl,
-        category_id: categoryId
-      });
+      let response;
+      
+      if (image) {
+        const formData = createFormData({ name, barcode, category_id: categoryId }, image);
+        response = await uploadApi.put(`/products/${productId}`, formData);
+      } else {
+        response = await api.put(`/products/${productId}`, {
+          name,
+          barcode,
+          category_id: categoryId
+        });
+      }
+      
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -65,7 +75,7 @@ export class ProductsRepository implements IProductsRepository {
         } else if (error.response?.status === 404) {
           throw new Error("Product or category not found");
         } else if (error.response?.status === 400) {
-          throw new Error("Product name already exists");
+          throw new Error(error.response.data?.message || "Invalid data provided");
         }
         throw new Error(error.response?.data?.message || 'Failed to update product');
       }
