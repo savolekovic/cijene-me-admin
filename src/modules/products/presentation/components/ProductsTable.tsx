@@ -1,5 +1,5 @@
-import React from 'react';
-import { FaSort, FaSortDown, FaSortUp } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaSort, FaSortDown, FaSortUp, FaBox } from 'react-icons/fa';
 import { Product } from '../../domain/interfaces/IProductsRepository';
 
 export type SortField = 'id' | 'name' | 'barcode' | 'category_name' | 'created_at';
@@ -27,6 +27,70 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     return sortOrder === 'asc' ?
       <FaSortUp className="ms-1 text-primary" /> :
       <FaSortDown className="ms-1 text-primary" />;
+  };
+
+  const getFullImageUrl = (imageUrl: string | null) => {
+    if (!imageUrl) return null;
+    // If the URL is already absolute (starts with http/https), use it as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    // Otherwise, prepend the API URL for relative paths
+    if (!process.env.REACT_APP_API_URL) return null;
+    return `${process.env.REACT_APP_API_URL}${imageUrl}`;
+  };
+
+  const Placeholder: React.FC<{ size: 'small' | 'large' }> = ({ size }) => {
+    const dimensions = size === 'small' ? 
+      { width: '50px', height: '50px', iconSize: 24 } : 
+      { width: '80px', height: '80px', iconSize: 32 };
+
+    return (
+      <div 
+        style={{ 
+          width: dimensions.width, 
+          height: dimensions.height,
+          backgroundColor: '#f8f9fa',
+          borderRadius: size === 'small' ? '4px' : '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <FaBox size={dimensions.iconSize} className="text-muted" />
+      </div>
+    );
+  };
+
+  const ProductImage: React.FC<{ 
+    imageUrl: string | null, 
+    name: string, 
+    size?: 'small' | 'large' 
+  }> = ({ imageUrl, name, size = 'small' }) => {
+    const [hasError, setHasError] = useState(false);
+    const dimensions = size === 'small' ? 
+      { width: '50px', height: '50px' } : 
+      { width: '80px', height: '80px' };
+    
+    const fullUrl = getFullImageUrl(imageUrl);
+
+    if (hasError || !fullUrl) {
+      return <Placeholder size={size} />;
+    }
+
+    return (
+      <img 
+        src={fullUrl} 
+        alt={name}
+        style={{ 
+          width: dimensions.width, 
+          height: dimensions.height, 
+          objectFit: 'cover',
+          borderRadius: size === 'small' ? '4px' : '8px'
+        }}
+        onError={() => setHasError(true)}
+      />
+    );
   };
 
   return (
@@ -63,9 +127,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                   <td>{product.name}</td>
                   <td>{product.barcode}</td>
                   <td>
-                    <a href={product.image_url} target="_blank" rel="noopener noreferrer">
-                      View Image
-                    </a>
+                    <ProductImage imageUrl={product.image_url} name={product.name} size="small" />
                   </td>
                   <td>{product.category?.name || 'N/A'}</td>
                   <td>{new Date(product.created_at).toLocaleDateString()}</td>
@@ -97,8 +159,13 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         {products.map((product) => (
           <div key={product.id} className="card mb-3">
             <div className="card-body">
-              <h6 className="card-subtitle mb-2 text-muted">#{product.id}</h6>
-              <h5 className="card-title">{product.name}</h5>
+              <div className="d-flex gap-3 mb-3">
+                <ProductImage imageUrl={product.image_url} name={product.name} size="large" />
+                <div>
+                  <h6 className="card-subtitle mb-2 text-muted">#{product.id}</h6>
+                  <h5 className="card-title">{product.name}</h5>
+                </div>
+              </div>
               <div className="mb-2">
                 <strong>Barcode:</strong> {product.barcode}
               </div>
@@ -107,12 +174,6 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
               </div>
               <div className="mb-2">
                 <strong>Created:</strong> {new Date(product.created_at).toLocaleDateString()}
-              </div>
-              <div className="mb-2">
-                <a href={product.image_url} target="_blank" rel="noopener noreferrer" 
-                   className="btn btn-sm btn-outline-secondary">
-                  View Image
-                </a>
               </div>
               <div className="d-flex gap-2">
                 <button

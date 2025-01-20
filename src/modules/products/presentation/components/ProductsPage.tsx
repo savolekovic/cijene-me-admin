@@ -26,16 +26,16 @@ const ProductsPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProductName, setNewProductName] = useState('');
   const [newProductBarcode, setNewProductBarcode] = useState('');
-  const [newProductImageUrl, setNewProductImageUrl] = useState('');
-  const [newProductCategoryId, setNewProductCategoryId] = useState<number>(0);
+  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [newProductCategoryId, setNewProductCategoryId] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editName, setEditName] = useState('');
   const [editBarcode, setEditBarcode] = useState('');
-  const [editImageUrl, setEditImageUrl] = useState('');
-  const [editCategoryId, setEditCategoryId] = useState<number>(0);
+  const [editImage, setEditImage] = useState<File | null>(null);
+  const [editCategoryId, setEditCategoryId] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -77,19 +77,24 @@ const ProductsPage: React.FC = () => {
     e.preventDefault();
     setIsCreating(true);
     try {
-      const newProduct = await productsRepository.createProduct(
+      // Get the response from the API
+      const response = await productsRepository.createProduct(
         newProductName,
         newProductBarcode,
-        newProductImageUrl,
+        newProductImage!,
         newProductCategoryId
       );
       
       // Find the category object
       const category = categories.find(cat => cat.id === newProductCategoryId);
       
-      // Add the category to the product object
-      const productWithCategory = {
-        ...newProduct,
+      // Create the product object with the category
+      const productWithCategory: Product = {
+        id: response.id,
+        name: response.name,
+        barcode: response.barcode,
+        image_url: response.image_url, // This will now be the full Cloudinary URL
+        created_at: response.created_at,
         category: category || { id: newProductCategoryId, name: 'Unknown' }
       };
       
@@ -114,7 +119,7 @@ const ProductsPage: React.FC = () => {
         editingProduct.id,
         editName,
         editBarcode,
-        editImageUrl,
+        editImage,
         editCategoryId
       );
       setProducts(products.map(prod =>
@@ -133,14 +138,14 @@ const ProductsPage: React.FC = () => {
   const resetAddForm = () => {
     setNewProductName('');
     setNewProductBarcode('');
-    setNewProductImageUrl('');
+    setNewProductImage(null);
     setNewProductCategoryId(0);
   };
 
   const resetEditForm = () => {
     setEditName('');
     setEditBarcode('');
-    setEditImageUrl('');
+    setEditImage(null);
     setEditCategoryId(0);
   };
 
@@ -164,7 +169,7 @@ const ProductsPage: React.FC = () => {
     setShowAddModal(false);
     setNewProductName('');
     setNewProductBarcode('');
-    setNewProductImageUrl('');
+    setNewProductImage(null);
     setNewProductCategoryId(0);
   };
 
@@ -172,7 +177,7 @@ const ProductsPage: React.FC = () => {
     setEditingProduct(null);
     setEditName('');
     setEditBarcode('');
-    setEditImageUrl('');
+    setEditImage(null);
     setEditCategoryId(0);
   };
 
@@ -180,7 +185,7 @@ const ProductsPage: React.FC = () => {
     setEditingProduct(product);
     setEditName(product.name);
     setEditBarcode(product.barcode);
-    setEditImageUrl(product.image_url);
+    setEditImage(null);
     setEditCategoryId(product.category.id);
   };
 
@@ -239,8 +244,8 @@ const ProductsPage: React.FC = () => {
         setName={setNewProductName}
         barcode={newProductBarcode}
         setBarcode={setNewProductBarcode}
-        imageUrl={newProductImageUrl}
-        setImageUrl={setNewProductImageUrl}
+        image={newProductImage}
+        setImage={setNewProductImage}
         categoryId={newProductCategoryId}
         setCategoryId={setNewProductCategoryId}
       />
@@ -257,8 +262,8 @@ const ProductsPage: React.FC = () => {
         setName={setEditName}
         barcode={editBarcode}
         setBarcode={setEditBarcode}
-        imageUrl={editImageUrl}
-        setImageUrl={setEditImageUrl}
+        image={editImage}
+        setImage={setEditImage}
         categoryId={editCategoryId}
         setCategoryId={setEditCategoryId}
       />

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Category } from '../../../../categories/domain/interfaces/ICategoriesRepository';
-import { validateEANBarcode, validateProductName, validateImageUrl } from '../../../../shared/utils/validation';
+import { validateProductName, validateImageInput, validateEANBarcode } from '../../../../shared/utils/validation';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -13,8 +13,8 @@ interface ProductFormModalProps {
   setName: (name: string) => void;
   barcode: string;
   setBarcode: (barcode: string) => void;
-  imageUrl: string;
-  setImageUrl: (url: string) => void;
+  image: File | null;
+  setImage: (image: File | null) => void;
   categoryId: number;
   setCategoryId: (id: number) => void;
 }
@@ -30,14 +30,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   setName,
   barcode,
   setBarcode,
-  imageUrl,
-  setImageUrl,
+  image,
+  setImage,
   categoryId,
   setCategoryId
 }) => {
   const [nameError, setNameError] = useState<string>('');
   const [barcodeError, setBarcodeError] = useState<string>('');
-  const [imageUrlError, setImageUrlError] = useState<string>('');
+  const [imageError, setImageError] = useState<string>('');
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
@@ -61,12 +63,44 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
   };
 
-  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newUrl = e.target.value;
-    setImageUrl(newUrl);
-    const error = validateImageUrl(newUrl);
-    setImageUrlError(error || '');
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      setImage(file);
+      const error = validateImageInput(file);
+      setImageError(error || '');
+      
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+    }
   };
+
+  const handleRemoveImage = () => {
+    setImage(null);
+    setImagePreview('');
+    setImageError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Cleanup preview URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  // Initialize preview when modal opens
+  React.useEffect(() => {
+    if (isOpen && image) {
+      const previewUrl = URL.createObjectURL(image);
+      setImagePreview(previewUrl);
+    }
+  }, [isOpen, image]);
 
   if (!isOpen) return null;
 
@@ -126,20 +160,38 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 )}
               </div>
               <div className="mb-3">
-                <label htmlFor="imageUrl" className="form-label">Image URL</label>
-                <input
-                  type="url"
-                  className={`form-control ${imageUrlError ? 'is-invalid' : ''}`}
-                  id="imageUrl"
-                  value={imageUrl}
-                  onChange={handleImageUrlChange}
-                  required
-                  disabled={isProcessing}
-                  placeholder="Enter image URL"
-                />
-                {imageUrlError && (
-                  <div className="invalid-feedback">
-                    {imageUrlError}
+                <label className="form-label">Product Image</label>
+                <div className="d-flex gap-2 mb-2">
+                  <input
+                    type="file"
+                    className={`form-control ${imageError ? 'is-invalid' : ''}`}
+                    accept="image/jpeg,image/png,image/gif"
+                    onChange={handleFileChange}
+                    disabled={isProcessing}
+                    ref={fileInputRef}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    onClick={handleRemoveImage}
+                    disabled={isProcessing || !image}
+                  >
+                    Remove
+                  </button>
+                </div>
+                {imagePreview && (
+                  <div className="mt-2">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="img-thumbnail"
+                      style={{ maxHeight: '200px' }}
+                    />
+                  </div>
+                )}
+                {imageError && (
+                  <div className="invalid-feedback d-block">
+                    {imageError}
                   </div>
                 )}
               </div>
@@ -178,10 +230,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   isProcessing || 
                   !!nameError || 
                   !!barcodeError || 
-                  !!imageUrlError || 
+                  !!imageError || 
                   !name.trim() || 
                   !barcode.trim() || 
-                  !imageUrl.trim() || 
+                  !image || 
                   !categoryId
                 }
               >
