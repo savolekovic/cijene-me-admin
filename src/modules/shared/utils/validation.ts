@@ -96,6 +96,34 @@ export const validateStoreBrandName = (name: string): string | null => {
   return null;
 };
 
+export const validateImageFile = (file: File | null): string | null => {
+  if (!file) {
+    return 'Image file is required';
+  }
+
+  // Check file size (5MB limit)
+  const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+  if (file.size > maxSize) {
+    return 'Image file size must not exceed 5MB';
+  }
+
+  // Check file type
+  const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  if (!validTypes.includes(file.type)) {
+    return 'Only JPEG, PNG, and GIF images are allowed';
+  }
+
+  return null;
+};
+
+export const validateImageInput = (input: File | null): string | null => {
+  if (!input) {
+    return 'Image is required';
+  }
+
+  return validateImageFile(input);
+};
+
 // Valid EAN-8 examples:
 // 40170725 (valid because 4×3 + 0×1 + 1×3 + 7×1 + 0×3 + 7×1 + 2×3 = 35, next multiple of 10 is 40, so check digit is 5)
 // 96385074
