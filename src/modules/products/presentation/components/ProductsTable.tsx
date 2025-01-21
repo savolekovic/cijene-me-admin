@@ -51,10 +51,11 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
           width: dimensions.width, 
           height: dimensions.height,
           backgroundColor: '#f8f9fa',
-          borderRadius: size === 'small' ? '4px' : '8px',
+          borderRadius: '4px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          margin: '0 auto'
         }}
       >
         <FaBox size={dimensions.iconSize} className="text-muted" />
@@ -67,6 +68,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     name: string, 
     size?: 'small' | 'large' 
   }> = ({ imageUrl, name, size = 'small' }) => {
+    const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const dimensions = size === 'small' ? 
       { width: '50px', height: '50px' } : 
@@ -79,17 +81,34 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     }
 
     return (
-      <img 
-        src={fullUrl} 
-        alt={name}
-        style={{ 
-          width: dimensions.width, 
-          height: dimensions.height, 
-          objectFit: 'cover',
-          borderRadius: size === 'small' ? '4px' : '8px'
-        }}
-        onError={() => setHasError(true)}
-      />
+      <div style={{ 
+        width: dimensions.width, 
+        height: dimensions.height, 
+        position: 'relative',
+        margin: '0 auto'
+      }}>
+        {isLoading && <Placeholder size={size} />}
+        <img 
+          src={fullUrl} 
+          alt={name}
+          style={{ 
+            width: dimensions.width, 
+            height: dimensions.height, 
+            objectFit: 'cover',
+            borderRadius: '4px',
+            position: isLoading ? 'absolute' : 'static',
+            top: 0,
+            left: 0,
+            opacity: isLoading ? 0 : 1,
+            transition: 'opacity 0.2s ease-in-out'
+          }}
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+        />
+      </div>
     );
   };
 
@@ -98,40 +117,36 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
       {/* Desktop View */}
       <div className="d-none d-md-block">
         <div className="table-responsive">
-          <table className="table table-hover">
+          <table className="table table-hover align-middle">
             <thead>
-              <tr>
-                <th onClick={() => onSort('id')} style={{ cursor: 'pointer' }}>
-                  ID {getSortIcon('id')}
-                </th>
+              <tr className="text-center">
+                <th>Image</th>
                 <th onClick={() => onSort('name')} style={{ cursor: 'pointer' }}>
                   Name {getSortIcon('name')}
                 </th>
                 <th onClick={() => onSort('barcode')} style={{ cursor: 'pointer' }}>
                   Barcode {getSortIcon('barcode')}
                 </th>
-                <th>Image</th>
                 <th onClick={() => onSort('category_name')} style={{ cursor: 'pointer' }}>
                   Category {getSortIcon('category_name')}
                 </th>
                 <th onClick={() => onSort('created_at')} style={{ cursor: 'pointer' }}>
                   Created At {getSortIcon('created_at')}
                 </th>
-                <th className="text-end">Actions</th>
+                <th className="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {products.map((product) => (
-                <tr key={product.id}>
-                  <td>{product.id}</td>
-                  <td>{product.name}</td>
-                  <td>{product.barcode}</td>
-                  <td>
+                <tr key={product.id} className="text-center">
+                  <td style={{ width: '80px', height: '80px', padding: '8px' }}>
                     <ProductImage imageUrl={product.image_url} name={product.name} size="small" />
                   </td>
-                  <td>{product.category?.name || 'N/A'}</td>
-                  <td>{new Date(product.created_at).toLocaleDateString()}</td>
-                  <td className="text-end">
+                  <td className="align-middle">{product.name}</td>
+                  <td className="align-middle">{product.barcode}</td>
+                  <td className="align-middle">{product.category?.name || 'N/A'}</td>
+                  <td className="align-middle">{new Date(product.created_at).toLocaleDateString()}</td>
+                  <td className="align-middle">
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-primary"
@@ -160,14 +175,13 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
           <div key={product.id} className="card mb-3">
             <div className="card-body">
               <div className="d-flex gap-3 mb-3">
-                <ProductImage imageUrl={product.image_url} name={product.name} size="large" />
-                <div>
-                  <h6 className="card-subtitle mb-2 text-muted">#{product.id}</h6>
-                  <h5 className="card-title">{product.name}</h5>
+                <div style={{ width: '80px', height: '80px', flexShrink: 0 }}>
+                  <ProductImage imageUrl={product.image_url} name={product.name} size="large" />
                 </div>
-              </div>
-              <div className="mb-2">
-                <strong>Barcode:</strong> {product.barcode}
+                <div>
+                  <h5 className="card-title">{product.name}</h5>
+                  <div className="text-muted small mb-2">{product.barcode}</div>
+                </div>
               </div>
               <div className="mb-2">
                 <strong>Category:</strong> {product.category?.name || 'N/A'}
