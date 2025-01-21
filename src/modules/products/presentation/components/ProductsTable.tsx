@@ -43,7 +43,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   const Placeholder: React.FC<{ size: 'small' | 'large' }> = ({ size }) => {
     const dimensions = size === 'small' ? 
       { width: '50px', height: '50px', iconSize: 24 } : 
-      { width: '80px', height: '80px', iconSize: 32 };
+      { width: '60px', height: '60px', iconSize: 28 };
 
     return (
       <div 
@@ -72,7 +72,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
     const [hasError, setHasError] = useState(false);
     const dimensions = size === 'small' ? 
       { width: '50px', height: '50px' } : 
-      { width: '80px', height: '80px' };
+      { width: '60px', height: '60px' };
     
     const fullUrl = getFullImageUrl(imageUrl);
 
@@ -119,34 +119,34 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         <div className="table-responsive">
           <table className="table table-hover align-middle">
             <thead>
-              <tr className="text-center">
-                <th>Image</th>
-                <th onClick={() => onSort('name')} style={{ cursor: 'pointer' }}>
-                  Name {getSortIcon('name')}
-                </th>
-                <th onClick={() => onSort('barcode')} style={{ cursor: 'pointer' }}>
-                  Barcode {getSortIcon('barcode')}
-                </th>
-                <th onClick={() => onSort('category_name')} style={{ cursor: 'pointer' }}>
-                  Category {getSortIcon('category_name')}
-                </th>
-                <th onClick={() => onSort('created_at')} style={{ cursor: 'pointer' }}>
-                  Created At {getSortIcon('created_at')}
-                </th>
-                <th className="text-center">Actions</th>
+              <tr>
+                <th style={{ width: '15%', padding: '0.5rem 1rem' }}>Image</th>
+                <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Name</th>
+                <th style={{ width: '20%', padding: '0.5rem 1rem' }}>Barcode</th>
+                <th style={{ width: '20%', padding: '0.5rem 1rem' }}>Category</th>
+                <th style={{ width: '10%', textAlign: 'right', padding: '0.5rem 1rem' }}>Created At</th>
+                <th style={{ width: '10%', textAlign: 'right', padding: '0.5rem 1rem' }}>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="border-top-0">
               {products.map((product) => (
-                <tr key={product.id} className="text-center">
-                  <td style={{ width: '80px', height: '80px', padding: '8px' }}>
-                    <ProductImage imageUrl={product.image_url} name={product.name} size="small" />
+                <tr key={product.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
+                  <td style={{ padding: '0.5rem 1rem' }}>
+                    <div style={{ width: '60px', height: '60px', margin: '0 auto' }}>
+                      <ProductImage 
+                        imageUrl={product.image_url} 
+                        name={product.name} 
+                        size="large" 
+                      />
+                    </div>
                   </td>
-                  <td className="align-middle">{product.name}</td>
-                  <td className="align-middle">{product.barcode}</td>
-                  <td className="align-middle">{product.category?.name || 'N/A'}</td>
-                  <td className="align-middle">{new Date(product.created_at).toLocaleDateString()}</td>
-                  <td className="align-middle">
+                  <td style={{ padding: '0.5rem 1rem' }}>{product.name}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{product.barcode}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{product.category.name}</td>
+                  <td className="text-end" style={{ padding: '0.5rem 1rem' }}>
+                    {new Date(product.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="text-end" style={{ padding: '0.5rem 1rem' }}>
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-primary"

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaSort, FaInbox } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { Category } from '../../../categories/domain/interfaces/ICategoriesRepository';
@@ -39,6 +39,8 @@ const ProductsPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -189,34 +191,162 @@ const ProductsPage: React.FC = () => {
     setEditCategoryId(product.category.id);
   };
 
+  const addProduct = () => {
+    setShowAddModal(true);
+  };
+
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.barcode.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show" role="alert">
-          {error}
-          <button type="button" className="btn-close" onClick={() => setError('')} />
-        </div>
-      )}
-
-      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
-        <h1 className="h3 mb-0">Products Management</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0">Products</h1>
         <button
-          className="btn btn-primary w-100 w-sm-auto"
-          onClick={() => setShowAddModal(true)}
+          className="btn btn-primary d-inline-flex align-items-center gap-2"
+          onClick={() => addProduct()}
         >
-          <FaPlus className="me-2" />
-          Add Product
+          <FaPlus size={14} />
+          <span>Add Product</span>
         </button>
       </div>
 
-      <div className="card">
-        <div className="card-body">
+      <div className="card shadow-sm">
+        <div className="card-header border-0 bg-white py-2">
+          <div className="row g-3 mb-0">
+            <div className="col-12 col-sm-8 col-md-6">
+              <div className="d-flex gap-2">
+                <div className="input-group flex-grow-1">
+                  <span className="input-group-text bg-white border-end-0">
+                    <FaSearch className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ paddingLeft: '12px' }}
+                  />
+                </div>
+                <div className="position-relative">
+                  <button 
+                    id="sort-button"
+                    className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <FaSort size={14} />
+                    <span className="d-none d-sm-inline">
+                      {sortField === 'name' 
+                        ? `Name (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : sortField === 'barcode'
+                        ? `Barcode (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`}
+                    </span>
+                  </button>
+                  {isDropdownOpen && (
+                    <div 
+                      id="sort-dropdown"
+                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
+                      style={{ 
+                        zIndex: 1000, 
+                        minWidth: '160px',
+                        border: '1px solid rgba(0,0,0,.15)'
+                      }}
+                    >
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('name'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Name (A-Z)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('name'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Name (Z-A)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('barcode'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Barcode (A-Z)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('barcode'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Barcode (Z-A)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('created_at'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Newest)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('created_at'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Oldest)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 col-md-6">
+              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
+                <span className="badge bg-secondary">
+                  Total Products: {products.length}
+                </span>
+              </div>
+            </div>
+          </div>
+          {error && (
+            <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+              {error}
+              <button type="button" className="btn-close" onClick={() => setError('')} />
+            </div>
+          )}
+        </div>
+        <div className="card-body p-0">
           <ProductsTable
-            products={products}
+            products={filteredProducts}
             sortField={sortField}
             sortOrder={sortOrder}
             onSort={handleSort}
@@ -225,8 +355,12 @@ const ProductsPage: React.FC = () => {
           />
 
           {products.length === 0 && !error && (
-            <div className="text-center py-4">
-              <p className="text-muted">No products found.</p>
+            <div className="text-center py-5">
+              <div className="text-muted mb-2">
+                <FaInbox size={48} />
+              </div>
+              <h5 className="fw-normal text-muted">No products found</h5>
+              <p className="text-muted small mb-0">Create a new product to get started</p>
             </div>
           )}
         </div>
