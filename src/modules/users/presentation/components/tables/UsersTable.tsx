@@ -44,19 +44,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
           <table className="table table-hover align-middle">
             <thead>
               <tr>
-                <th onClick={() => onSort('full_name')} style={{ cursor: 'pointer', width: '30%', padding: '0.75rem 1rem' }}>
-                  Name {getSortIcon('full_name')}
-                </th>
-                <th style={{ width: '30%', padding: '0.75rem 1rem' }}>
-                  Email
-                </th>
-                <th onClick={() => onSort('role')} style={{ cursor: 'pointer', width: '15%', padding: '0.75rem 1rem' }}>
-                  Role {getSortIcon('role')}
-                </th>
-                <th onClick={() => onSort('created_at')} style={{ cursor: 'pointer', width: '15%', textAlign: 'right', padding: '0.75rem 1rem' }}>
-                  Created At {getSortIcon('created_at')}
-                </th>
-                <th style={{ width: '10%', textAlign: 'right', padding: '0.75rem 1rem' }}>Actions</th>
+                <th style={{ width: '27.5%', padding: '0.75rem 1rem' }}>Name</th>
+                <th style={{ width: '27.5%', padding: '0.75rem 1rem' }}>Email</th>
+                <th style={{ width: '10%', padding: '0.75rem 1rem' }}>Role</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '0.75rem 1rem' }}>Created At</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '0.75rem 1rem' }}>Actions</th>
               </tr>
             </thead>
             <tbody className="border-top-0">
@@ -65,7 +57,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   <td style={{ padding: '0.75rem 1rem' }}>{user.full_name}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{user.email}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>
-                  <span className={getRoleBadgeClass(user.role)} style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+                   <span className={getRoleBadgeClass(user.role)} style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
                       {user.role}
                     </span>
                   </td>
