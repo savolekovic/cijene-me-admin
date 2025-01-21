@@ -1,16 +1,13 @@
 import React from 'react';
 import { User } from '../../../domain/interfaces/IUsersRepository';
-import { FaSort, FaSortUp, FaSortDown, FaUser } from 'react-icons/fa';
-
-type SortField = 'id' | 'full_name' | 'email' | 'role' | 'created_at';
-type SortOrder = 'asc' | 'desc';
+import { FaSort, FaSortDown, FaSortUp } from 'react-icons/fa';
 
 interface UsersTableProps {
   users: User[];
-  sortField: SortField;
-  sortOrder: SortOrder;
-  onSort: (field: SortField) => void;
-  onDelete: (userId: number) => void;
+  sortField: 'full_name' | 'email' | 'role' | 'created_at';
+  sortOrder: 'asc' | 'desc';
+  onSort: (field: 'full_name' | 'email' | 'role' | 'created_at') => void;
+  onDelete: (id: number) => void;
   onChangeRole: (user: User) => void;
   deletingUsers: number[];
 }
@@ -22,19 +19,16 @@ const UsersTable: React.FC<UsersTableProps> = ({
   onSort,
   onDelete,
   onChangeRole,
-  deletingUsers,
+  deletingUsers
 }) => {
-  const getSortIcon = (field: SortField) => {
+  const getSortIcon = (field: string) => {
     if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
     return sortOrder === 'asc' ? 
       <FaSortUp className="ms-1 text-primary" /> : 
       <FaSortDown className="ms-1 text-primary" />;
   };
-
   const getRoleBadgeClass = (role: string) => {
     switch (role.toLowerCase()) {
-      case 'admin':
-        return 'badge rounded-pill bg-danger px-3 py-2 text-uppercase';
       case 'moderator':
         return 'badge rounded-pill bg-warning px-3 py-2 text-uppercase';
       default:
@@ -47,63 +41,51 @@ const UsersTable: React.FC<UsersTableProps> = ({
       {/* Desktop View */}
       <div className="d-none d-md-block">
         <div className="table-responsive">
-          <table className="table table-hover">
-            <thead className="table-light">
+          <table className="table table-hover align-middle">
+            <thead>
               <tr>
-                <th onClick={() => onSort('id')} style={{ cursor: 'pointer' }}>
-                  ID {getSortIcon('id')}
+                <th onClick={() => onSort('full_name')} style={{ cursor: 'pointer', width: '30%', padding: '0.75rem 1rem' }}>
+                  Name {getSortIcon('full_name')}
                 </th>
-                <th onClick={() => onSort('full_name')} style={{ cursor: 'pointer' }}>
-                  Full Name {getSortIcon('full_name')}
+                <th style={{ width: '30%', padding: '0.75rem 1rem' }}>
+                  Email
                 </th>
-                <th onClick={() => onSort('email')} style={{ cursor: 'pointer' }}>
-                  Email {getSortIcon('email')}
-                </th>
-                <th onClick={() => onSort('role')} style={{ cursor: 'pointer' }}>
+                <th onClick={() => onSort('role')} style={{ cursor: 'pointer', width: '15%', padding: '0.75rem 1rem' }}>
                   Role {getSortIcon('role')}
                 </th>
-                <th onClick={() => onSort('created_at')} style={{ cursor: 'pointer' }}>
+                <th onClick={() => onSort('created_at')} style={{ cursor: 'pointer', width: '15%', textAlign: 'right', padding: '0.75rem 1rem' }}>
                   Created At {getSortIcon('created_at')}
                 </th>
-                <th>Actions</th>
+                <th style={{ width: '10%', textAlign: 'right', padding: '0.75rem 1rem' }}>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {Array.isArray(users) && users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.id}</td>
-                  <td>{user.full_name}</td>
-                  <td>{user.email}</td>
-                  <td>
-                    <span className={getRoleBadgeClass(user.role)} style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+            <tbody className="border-top-0">
+              {users.map((user) => (
+                <tr key={user.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
+                  <td style={{ padding: '0.75rem 1rem' }}>{user.full_name}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>{user.email}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                  <span className={getRoleBadgeClass(user.role)} style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
                       {user.role}
                     </span>
                   </td>
-                  <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                  <td>
+                  <td className="text-end" style={{ padding: '0.75rem 1rem' }}>
+                    {new Date(user.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="text-end" style={{ padding: '0.75rem 1rem' }}>
                     <div className="btn-group">
-                      <button 
-                        className="btn btn-sm btn-outline-warning"
-                        title="Change user role"
+                      <button
+                        className="btn btn-sm btn-outline-primary"
                         onClick={() => onChangeRole(user)}
-                        disabled={user.role === 'admin'}
                       >
                         Change Role
                       </button>
-                      <button 
+                      <button
                         className="btn btn-sm btn-outline-danger"
-                        title="Delete user"
                         onClick={() => onDelete(user.id)}
                         disabled={deletingUsers.includes(user.id)}
                       >
-                        {deletingUsers.includes(user.id) ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm me-1" />
-                            Deleting...
-                          </>
-                        ) : (
-                          'Delete'
-                        )}
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -116,65 +98,39 @@ const UsersTable: React.FC<UsersTableProps> = ({
 
       {/* Mobile View */}
       <div className="d-md-none">
-        {Array.isArray(users) && users.map((user) => (
-          <div key={user.id} className="card mb-3 shadow-sm">
+        {users.map((user) => (
+          <div key={user.id} className="card mb-3">
             <div className="card-body">
-              <div className="d-flex align-items-start gap-3 mb-3">
-                <div className="bg-light rounded-circle p-2">
-                  <FaUser className="text-primary" size={24} />
+              <div className="d-flex flex-column mb-3">
+                <h5 className="card-title mb-1">{user.full_name}</h5>
+                <div className="text-muted small mb-2">{user.email}</div>
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge bg-secondary">
+                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  </span>
+                  <span className="text-muted small">
+                    Added on {new Date(user.created_at).toLocaleDateString()}
+                  </span>
                 </div>
-                <div className="flex-grow-1">
-                  <h6 className="card-subtitle mb-1 text-muted">#{user.id}</h6>
-                  <h5 className="card-title mb-0">{user.full_name}</h5>
-                </div>
               </div>
-
-              <div className="mb-2">
-                <strong>Email:</strong> {user.email}
-              </div>
-
-              <div className="mb-3">
-                <span className={getRoleBadgeClass(user.role)} style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
-                  {user.role}
-                </span>
-              </div>
-
-              <div className="mb-3 text-muted small">
-                <i>Added on {new Date(user.created_at).toLocaleDateString()}</i>
-              </div>
-
-              <div className="d-grid gap-2">
-                <button 
-                  className="btn btn-sm btn-outline-warning"
+              <div className="d-flex gap-2">
+                <button
+                  className="btn btn-sm btn-outline-primary flex-grow-1"
                   onClick={() => onChangeRole(user)}
-                  disabled={user.role === 'admin'}
                 >
                   Change Role
                 </button>
-                <button 
-                  className="btn btn-sm btn-outline-danger"
+                <button
+                  className="btn btn-sm btn-outline-danger flex-grow-1"
                   onClick={() => onDelete(user.id)}
                   disabled={deletingUsers.includes(user.id)}
                 >
-                  {deletingUsers.includes(user.id) ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-1" />
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete'
-                  )}
+                  Delete
                 </button>
               </div>
             </div>
           </div>
         ))}
-
-        {(!Array.isArray(users) || users.length === 0) && (
-          <div className="text-center py-4">
-            <p className="text-muted">No users found matching your search criteria.</p>
-          </div>
-        )}
       </div>
     </>
   );

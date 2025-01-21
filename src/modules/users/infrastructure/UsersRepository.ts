@@ -19,8 +19,11 @@ export class UsersRepository implements IUsersRepository {
           headers: error.response?.headers
         });
         
-        if (error.response?.status === 401 || error.response?.status === 403) {
+        if (error.response?.status === 401) {
+          // Let the interceptor handle the token refresh
           throw new Error('Unauthorized access. Please login again.');
+        } else if (error.response?.status === 403) {
+          throw new Error('Access forbidden. Insufficient permissions.');
         }
         throw new Error(error.response?.data?.message || 'Failed to fetch users.');
       }

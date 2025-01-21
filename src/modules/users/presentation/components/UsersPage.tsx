@@ -3,7 +3,7 @@ import { User } from '../../domain/interfaces/IUsersRepository';
 import { UsersRepository } from '../../infrastructure/UsersRepository';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaSort, FaInbox } from 'react-icons/fa';
 import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
 import UsersTable from './tables/UsersTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
@@ -11,7 +11,7 @@ import ChangeRoleModal from './modals/ChangeRoleModal';
 
 const usersRepository = new UsersRepository();
 
-type SortField = 'id' | 'full_name' | 'email' | 'role' | 'created_at';
+type SortField = 'full_name' | 'email' | 'role' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 const UsersPage: React.FC = () => {
@@ -20,7 +20,7 @@ const UsersPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<SortField>('id');
+  const [sortField, setSortField] = useState<SortField>('full_name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const { accessToken, logout } = useAuth();
   const navigate = useNavigate();
@@ -28,6 +28,7 @@ const UsersPage: React.FC = () => {
   const [deletingUsers, setDeletingUsers] = useState<number[]>([]);
   const [changeRoleUser, setChangeRoleUser] = useState<User | null>(null);
   const [isChangingRole, setIsChangingRole] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!accessToken) {
@@ -73,21 +74,27 @@ const UsersPage: React.FC = () => {
 
     // Sort the filtered results
     filtered = [...filtered].sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
+      let aValue: string | number = '';
+      let bValue: string | number = '';
 
-      // Handle date comparison
-      if (sortField === 'created_at') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
-      }
-
-      // Handle string comparison
-      if (typeof aValue === 'string') {
-        aValue = aValue.toLowerCase();
-      }
-      if (typeof bValue === 'string') {
-        bValue = bValue.toLowerCase();
+      switch (sortField) {
+        case 'full_name':
+          aValue = a.full_name.toLowerCase();
+          bValue = b.full_name.toLowerCase();
+          break;
+        case 'email':
+          aValue = a.email.toLowerCase();
+          bValue = b.email.toLowerCase();
+          break;
+        case 'role':
+          // Convert roles to numbers for consistent sorting
+          aValue = a.role.toLowerCase() === 'moderator' ? 1 : 0;
+          bValue = b.role.toLowerCase() === 'moderator' ? 1 : 0;
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
       }
 
       if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
@@ -97,6 +104,25 @@ const UsersPage: React.FC = () => {
 
     setFilteredUsers(filtered);
   }, [searchTerm, users, sortField, sortOrder]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.getElementById('sort-dropdown');
+      const button = document.getElementById('sort-button');
+      if (
+        isDropdownOpen && 
+        dropdown && 
+        button && 
+        !dropdown.contains(event.target as Node) && 
+        !button.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDropdownOpen]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -172,25 +198,122 @@ const UsersPage: React.FC = () => {
         </div>
       )}
 
-      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
+      <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="h3 mb-0">Users Management</h1>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="row g-3 mb-4">
+      <div className="card shadow-sm">
+        <div className="card-header border-0 bg-white py-2">
+          <div className="row g-3 mb-0">
             <div className="col-12 col-sm-8 col-md-6">
-              <div className="input-group">
-                <span className="input-group-text bg-light border-end-0">
-                  <FaSearch className="text-muted" />
-                </span>
-                <input
-                  type="text"
-                  className="form-control border-start-0 ps-0"
-                  placeholder="Search users by name, email or role..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="d-flex gap-2">
+                <div className="input-group flex-grow-1">
+                  <span className="input-group-text bg-white border-end-0">
+                    <FaSearch className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0"
+                    placeholder="Search users by name, email or role..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ paddingLeft: '12px' }}
+                  />
+                </div>
+                <div className="position-relative">
+                  <button 
+                    id="sort-button"
+                    className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <FaSort size={14} />
+                    <span className="d-none d-sm-inline">
+                      {sortField === 'full_name' 
+                        ? `Name (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : sortField === 'created_at'
+                        ? `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`
+                        : sortField === 'role'
+                        ? `Role (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : 'Sort By'}
+                    </span>
+                  </button>
+                  {isDropdownOpen && (
+                    <div 
+                      id="sort-dropdown"
+                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
+                      style={{ 
+                        zIndex: 1000, 
+                        minWidth: '160px',
+                        border: '1px solid rgba(0,0,0,.15)'
+                      }}
+                    >
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('full_name'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Name (A-Z)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('full_name'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Name (Z-A)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('role'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Role (User → Moderator)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('role'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Role (Moderator → User)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('created_at'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Newest)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('created_at'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Oldest)
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="col-12 col-sm-4 col-md-6">
@@ -201,7 +324,8 @@ const UsersPage: React.FC = () => {
               </div>
             </div>
           </div>
-
+        </div>
+        <div className="card-body p-0">
           <UsersTable 
             users={filteredUsers}
             sortField={sortField}
@@ -213,10 +337,14 @@ const UsersPage: React.FC = () => {
           />
 
           {filteredUsers.length === 0 && (
-            <div className="text-center py-4">
-              <p className="text-muted mb-0">
+            <div className="text-center py-5">
+              <div className="text-muted mb-2">
+                <FaInbox size={48} />
+              </div>
+              <h5 className="fw-normal text-muted">
                 {searchTerm ? 'No users found matching your search.' : 'No users found.'}
-              </p>
+              </h5>
+              <p className="text-muted small mb-0">The user list is empty</p>
             </div>
           )}
         </div>
