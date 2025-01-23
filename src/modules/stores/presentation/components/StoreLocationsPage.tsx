@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
-import { StoreBrand } from '../../domain/interfaces/IStoreBrandRepository';
 import { StoreLocation } from '../../domain/interfaces/IStoreLocationRepository';
 import { StoreBrandRepository } from '../../infrastructure/StoreBrandRepository';
 import { StoreLocationRepository } from '../../infrastructure/StoreLocationRepository';
@@ -18,10 +18,7 @@ type SortField = 'id' | 'address' | 'store_brand_name' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 const StoreLocationsPage: React.FC = () => {
-  const [locations, setLocations] = useState<StoreLocation[]>([]);
-  const [storeBrands, setStoreBrands] = useState<StoreBrand[]>([]);
   const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
@@ -29,45 +26,99 @@ const StoreLocationsPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAddress, setNewAddress] = useState('');
   const [newStoreBrandId, setNewStoreBrandId] = useState<number>(0);
-  const [isCreating, setIsCreating] = useState(false);
 
   // Edit Modal State
   const [editingLocation, setEditingLocation] = useState<StoreLocation | null>(null);
   const [editAddress, setEditAddress] = useState('');
   const [editStoreBrandId, setEditStoreBrandId] = useState<number>(0);
-  const [isEditing, setIsEditing] = useState(false);
 
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [locationsData, brandsData] = await Promise.all([
-        storeLocationRepository.getAllStoreLocations(),
-        storeBrandRepository.getAllStoreBrands()
-      ]);
-      setLocations(locationsData);
-      setStoreBrands(brandsData);
-      setError('');
-    } catch (err) {
-      if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
-        logout();
-        navigate('/');
-      } else {
-        setError('Failed to load data');
+  // Query for fetching store locations
+  const { data: locations = [], isLoading: isLocationsLoading } = useQuery({
+    queryKey: ['storeLocations'],
+    queryFn: async () => {
+      try {
+        return await storeLocationRepository.getAllStoreLocations();
+      } catch (err) {
+        if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
+          logout();
+          navigate('/');
+        }
+        throw err;
       }
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
+
+  // Query for fetching store brands (needed for dropdowns)
+  const { data: storeBrands = [], isLoading: isBrandsLoading } = useQuery({
+    queryKey: ['storeBrands'],
+    queryFn: async () => {
+      try {
+        return await storeBrandRepository.getAllStoreBrands();
+      } catch (err) {
+        if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
+          logout();
+          navigate('/');
+        }
+        throw err;
+      }
+    }
+  });
+
+  // Mutation for creating store locations
+  const createMutation = useMutation({
+    mutationFn: ({ address, storeBrandId }: { address: string; storeBrandId: number }) =>
+      storeLocationRepository.createStoreLocation(address, storeBrandId),
+    onSuccess: (newLocation) => {
+      queryClient.setQueryData(['storeLocations'], (old: StoreLocation[] = []) => [...old, newLocation]);
+      setShowAddModal(false);
+      setNewAddress('');
+      setNewStoreBrandId(0);
+      setError('');
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to create store location');
+    }
+  });
+
+  // Mutation for updating store locations
+  const updateMutation = useMutation({
+    mutationFn: ({ id, address, storeBrandId }: { id: number; address: string; storeBrandId: number }) =>
+      storeLocationRepository.updateStoreLocation(id, address, storeBrandId),
+    onSuccess: (updatedLocation) => {
+      queryClient.setQueryData(['storeLocations'], (old: StoreLocation[] = []) =>
+        old.map(loc => loc.id === updatedLocation.id ? updatedLocation : loc)
+      );
+      setEditingLocation(null);
+      setEditAddress('');
+      setEditStoreBrandId(0);
+      setError('');
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to update store location');
+    }
+  });
+
+  // Mutation for deleting store locations
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => storeLocationRepository.deleteStoreLocation(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData(['storeLocations'], (old: StoreLocation[] = []) =>
+        old.filter(loc => loc.id !== deletedId)
+      );
+      setDeleteId(null);
+      setError('');
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to delete store location');
+    }
+  });
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -80,21 +131,7 @@ const StoreLocationsPage: React.FC = () => {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsCreating(true);
-    try {
-      const newLocation = await storeLocationRepository.createStoreLocation(
-        newAddress,
-        newStoreBrandId
-      );
-      setLocations(prev => [...prev, newLocation]);
-      setShowAddModal(false);
-      setNewAddress('');
-      setNewStoreBrandId(0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create store location');
-    } finally {
-      setIsCreating(false);
-    }
+    createMutation.mutate({ address: newAddress, storeBrandId: newStoreBrandId });
   };
 
   const handleEdit = (location: StoreLocation) => {
@@ -107,24 +144,11 @@ const StoreLocationsPage: React.FC = () => {
     e.preventDefault();
     if (!editingLocation) return;
     
-    setIsEditing(true);
-    try {
-      const updatedLocation = await storeLocationRepository.updateStoreLocation(
-        editingLocation.id,
-        editAddress,
-        editStoreBrandId
-      );
-      setLocations(prev => 
-        prev.map(loc => loc.id === updatedLocation.id ? updatedLocation : loc)
-      );
-      setEditingLocation(null);
-      setEditAddress('');
-      setEditStoreBrandId(0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update store location');
-    } finally {
-      setIsEditing(false);
-    }
+    updateMutation.mutate({
+      id: editingLocation.id,
+      address: editAddress,
+      storeBrandId: editStoreBrandId
+    });
   };
 
   const handleDelete = (id: number) => {
@@ -133,20 +157,10 @@ const StoreLocationsPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return;
-    
-    setIsDeleting(true);
-    try {
-      await storeLocationRepository.deleteStoreLocation(deleteId);
-      setLocations(prev => prev.filter(loc => loc.id !== deleteId));
-      setDeleteId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete store location');
-    } finally {
-      setIsDeleting(false);
-    }
+    deleteMutation.mutate(deleteId);
   };
 
-  if (isLoading) {
+  if (isLocationsLoading || isBrandsLoading) {
     return <LoadingSpinner />;
   }
 
@@ -195,7 +209,7 @@ const StoreLocationsPage: React.FC = () => {
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddSubmit}
         storeBrands={storeBrands}
-        isProcessing={isCreating}
+        isProcessing={createMutation.isPending}
         address={newAddress}
         setAddress={setNewAddress}
         storeBrandId={newStoreBrandId}
@@ -208,7 +222,7 @@ const StoreLocationsPage: React.FC = () => {
         onClose={() => setEditingLocation(null)}
         onSubmit={handleEditSubmit}
         storeBrands={storeBrands}
-        isProcessing={isEditing}
+        isProcessing={updateMutation.isPending}
         address={editAddress}
         setAddress={setEditAddress}
         storeBrandId={editStoreBrandId}
@@ -219,7 +233,7 @@ const StoreLocationsPage: React.FC = () => {
         isOpen={!!deleteId}
         title="Delete Store Location"
         message="Are you sure you want to delete this store location?"
-        isDeleting={isDeleting}
+        isDeleting={deleteMutation.isPending}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDeleteConfirm}
       />
