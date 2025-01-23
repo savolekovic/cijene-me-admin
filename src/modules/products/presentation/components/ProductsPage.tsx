@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaSearch, FaSort, FaInbox } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaSort, FaInbox, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
-import { Category } from '../../../categories/domain/interfaces/ICategoriesRepository';
 import { Product } from '../../domain/interfaces/IProductsRepository';
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
 import { ProductsTable, SortField } from './ProductsTable';
 import { ProductFormModal } from './modals/ProductFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';
-import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
 
 const productsRepository = new ProductsRepository();
 const categoriesRepository = new CategoriesRepository();
@@ -17,11 +16,7 @@ const categoriesRepository = new CategoriesRepository();
 type SortOrder = 'asc' | 'desc';
 
 const ProductsPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -29,80 +24,63 @@ const ProductsPage: React.FC = () => {
   const [newProductBarcode, setNewProductBarcode] = useState('');
   const [newProductImage, setNewProductImage] = useState<File | null>(null);
   const [newProductCategoryId, setNewProductCategoryId] = useState(0);
-  const [isCreating, setIsCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editName, setEditName] = useState('');
   const [editBarcode, setEditBarcode] = useState('');
   const [editImage, setEditImage] = useState<File | null>(null);
   const [editCategoryId, setEditCategoryId] = useState(0);
-  const [isEditing, setIsEditing] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchProducts = async () => {
+  // Query for fetching products
+  const { 
+    data: products = [], 
+    isLoading: queryLoading 
+  } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
       try {
-        const productsData = await productsRepository.getAllProducts();
-        setProducts(productsData);
+        const data = await productsRepository.getAllProducts();
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid data format received from server');
+        }
+        return data;
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
           navigate('/');
-        } else {
-          setError(err instanceof Error ? err.message : 'An error occurred');
         }
-      } finally {
-        setIsLoading(false);
+        throw err;
       }
-    };
-
-    fetchProducts();
-  }, [logout, navigate]);
-
-  const fetchCategories = async () => {
-    setIsLoadingCategories(true);
-    try {
-      const categoriesData = await categoriesRepository.getAllCategories();
-      setCategories(categoriesData);
-      setError('');
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('Unauthorized')) {
-        logout();
-        navigate('/');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to load categories');
-      }
-    } finally {
-      setIsLoadingCategories(false);
     }
-  };
+  });
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
+  // Query for fetching categories
+  const {
+    data: categories = [],
+    isLoading: isLoadingCategories
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesRepository.getAllCategories(),
+    enabled: showAddModal || !!editingProduct
+  });
 
-  const handleCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCreating(true);
-    try {
-      const response = await productsRepository.createProduct(
+  // Mutation for creating products
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      return productsRepository.createProduct(
         newProductName,
         newProductBarcode,
         newProductImage!,
         newProductCategoryId
       );
-      
+    },
+    onSuccess: (response) => {
       const category = categories.find(cat => cat.id === newProductCategoryId);
-      
       const productWithCategory: Product = {
         id: response.id,
         name: response.name,
@@ -112,70 +90,88 @@ const ProductsPage: React.FC = () => {
         category: category || { id: newProductCategoryId, name: 'Unknown' }
       };
       
-      setProducts([...products, productWithCategory]);
+      queryClient.setQueryData(['products'], (oldData: Product[] | undefined) => 
+        oldData ? [...oldData, productWithCategory] : [productWithCategory]
+      );
       setShowAddModal(false);
       resetAddForm();
-      setError('');
-    } catch (err) {
+    },
+    onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed to create product');
-    } finally {
-      setIsCreating(false);
+      setTimeout(() => setError(''), 3000);
     }
-  };
+  });
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProduct) return;
-
-    setIsEditing(true);
-    try {
-      const response = await productsRepository.updateProduct(
+  // Mutation for updating products
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingProduct) throw new Error('No product selected for editing');
+      return productsRepository.updateProduct(
         editingProduct.id,
         editName,
         editBarcode,
         editImage,
         editCategoryId
       );
-
+    },
+    onSuccess: (response) => {
       const category = categories.find(cat => cat.id === editCategoryId);
-
       const updatedProduct: Product = {
         id: response.id,
         name: response.name,
         barcode: response.barcode,
-        image_url: response.image_url || editingProduct.image_url,
+        image_url: response.image_url || editingProduct!.image_url,
         created_at: response.created_at,
         category: category || { id: editCategoryId, name: 'Unknown' }
       };
 
-      setProducts(products.map(product =>
-        product.id === updatedProduct.id ? updatedProduct : product
-      ));
+      queryClient.setQueryData(['products'], (oldData: Product[] | undefined) =>
+        oldData ? oldData.map(product =>
+          product.id === updatedProduct.id ? updatedProduct : product
+        ) : []
+      );
       setEditingProduct(null);
       resetEditForm();
-      setError('');
-    } catch (err) {
+    },
+    onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed to update product');
-    } finally {
-      setIsEditing(false);
+      setTimeout(() => setError(''), 3000);
     }
-  };
+  });
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteId) return;
-    
-    setIsDeleting(true);
-    try {
-      await productsRepository.deleteProduct(deleteId);
-      setProducts(products.filter(product => product.id !== deleteId));
+  // Mutation for deleting products
+  const deleteMutation = useMutation({
+    mutationFn: (productId: number) => productsRepository.deleteProduct(productId),
+    onSuccess: (_, productId) => {
+      queryClient.setQueryData(['products'], (oldData: Product[] | undefined) => 
+        oldData ? oldData.filter(product => product.id !== productId) : []
+      );
       setDeleteId(null);
-      setError('');
-    } catch (err) {
+    },
+    onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed to delete product');
-    } finally {
-      setIsDeleting(false);
+      setTimeout(() => setError(''), 3000);
     }
-  };
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.getElementById('sort-dropdown');
+      const button = document.getElementById('sort-button');
+      if (
+        isDropdownOpen && 
+        dropdown && 
+        button && 
+        !dropdown.contains(event.target as Node) && 
+        !button.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDropdownOpen]);
 
   const resetAddForm = () => {
     setNewProductName('');
@@ -191,34 +187,27 @@ const ProductsPage: React.FC = () => {
     setEditCategoryId(0);
   };
 
-  const handleCloseAddModal = () => {
-    setShowAddModal(false);
-    resetAddForm();
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate();
   };
 
-  const handleCloseEditModal = () => {
-    setEditingProduct(null);
-    resetEditForm();
-  };
-
-  const handleEditClick = async (product: Product) => {
+  const handleEditClick = (product: Product) => {
     setEditingProduct(product);
     setEditName(product.name);
     setEditBarcode(product.barcode);
     setEditImage(null);
     setEditCategoryId(product.category.id);
-    
-    if (categories.length === 0) {
-      await fetchCategories();
-    }
   };
 
-  const addProduct = () => {
-    setShowAddModal(true);
-    
-    if (categories.length === 0) {
-      fetchCategories();
-    }
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMutation.mutate();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
+    deleteMutation.mutate(deleteId);
   };
 
   const filteredProducts = products.filter(product =>
@@ -226,8 +215,12 @@ const ProductsPage: React.FC = () => {
     product.barcode.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (isLoading) {
-    return <LoadingSpinner />;
+  if (queryLoading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
+      </div>
+    );
   }
 
   return (
@@ -236,7 +229,7 @@ const ProductsPage: React.FC = () => {
         <h1 className="h3 mb-0">Products</h1>
         <button
           className="btn btn-primary d-inline-flex align-items-center gap-2"
-          onClick={addProduct}
+          onClick={() => setShowAddModal(true)}
         >
           <FaPlus size={14} />
           <span>Add Product</span>
@@ -375,7 +368,10 @@ const ProductsPage: React.FC = () => {
             products={filteredProducts}
             sortField={sortField}
             sortOrder={sortOrder}
-            onSort={handleSort}
+            onSort={(field) => {
+              setSortField(field);
+              setSortOrder('asc');
+            }}
             onEdit={handleEditClick}
             onDelete={setDeleteId}
           />
@@ -395,10 +391,13 @@ const ProductsPage: React.FC = () => {
       <ProductFormModal
         isOpen={showAddModal}
         mode="add"
-        onClose={handleCloseAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          resetAddForm();
+        }}
         onSubmit={handleCreateProduct}
         categories={categories}
-        isProcessing={isCreating}
+        isProcessing={createMutation.isPending}
         isLoadingCategories={isLoadingCategories}
         name={newProductName}
         setName={setNewProductName}
@@ -413,10 +412,13 @@ const ProductsPage: React.FC = () => {
       <ProductFormModal
         isOpen={!!editingProduct}
         mode="edit"
-        onClose={handleCloseEditModal}
+        onClose={() => {
+          setEditingProduct(null);
+          resetEditForm();
+        }}
         onSubmit={handleEditSubmit}
         categories={categories}
-        isProcessing={isEditing}
+        isProcessing={updateMutation.isPending}
         isLoadingCategories={isLoadingCategories}
         name={editName}
         setName={setEditName}
@@ -432,7 +434,7 @@ const ProductsPage: React.FC = () => {
         isOpen={!!deleteId}
         title="Delete Product"
         message="Are you sure you want to delete this product?"
-        isDeleting={isDeleting}
+        isDeleting={deleteMutation.isPending}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDeleteConfirm}
       />
