@@ -1,5 +1,6 @@
 import { ReactElement } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { AuthProvider, useAuth } from './modules/auth/presentation/context/AuthContext';
 import Login from './modules/auth/presentation/components/Login';
@@ -33,38 +34,49 @@ const PublicRoute = ({ children }: ProtectedRouteProps): ReactElement => {
   return children;
 };
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 30 * 60 * 1000, // 30 minutes
+    },
+  },
+});
+
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            } 
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="users" element={<UsersPage />} />
-            <Route path="categories" element={<CategoriesPage />} />
-            <Route path="products" element={<ProductsPage />} />
-            <Route path="product-entries" element={<ProductEntriesPage />} />
-            <Route path="store-brands" element={<StoreBrandPage />} />
-            <Route path="store-locations" element={<StoreLocationsPage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <AuthProvider>
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              } 
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="users" element={<UsersPage />} />
+              <Route path="categories" element={<CategoriesPage />} />
+              <Route path="products" element={<ProductsPage />} />
+              <Route path="product-entries" element={<ProductEntriesPage />} />
+              <Route path="store-brands" element={<StoreBrandPage />} />
+              <Route path="store-locations" element={<StoreLocationsPage />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthProvider>
+      </Router>
+    </QueryClientProvider>
   );
 }
 
