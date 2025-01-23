@@ -1,7 +1,7 @@
 import React from 'react';
 import { FaSort, FaSortDown, FaSortUp, FaBox, FaStore, FaMapMarkerAlt } from 'react-icons/fa';
-import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository';
-import { SortField, SortOrder } from '../utils/sorting';
+import { ProductEntry } from '../../../domain/interfaces/IProductEntriesRepository';
+import { SortField, SortOrder } from '../../utils/sorting';
 
 interface ProductEntriesTableProps {
   entries: ProductEntry[];

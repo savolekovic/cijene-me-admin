@@ -8,7 +8,7 @@ import { ProductEntriesRepository } from '../../infrastructure/ProductEntriesRep
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
 import { StoreLocationRepository } from '../../../stores/infrastructure/StoreLocationRepository';
 import { SortField } from '../utils/sorting';
-import { ProductEntriesTable } from './ProductEntriesTable';
+import { ProductEntriesTable } from './tables/ProductEntriesTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { ProductEntryFormModal } from './modals/ProductEntryFormModal';
 

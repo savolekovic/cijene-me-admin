@@ -194,16 +194,17 @@ const StoreBrandPage: React.FC = () => {
             <div className="col-12 col-sm-8 col-md-6">
               <div className="d-flex gap-2">
                 <div className="input-group flex-grow-1">
-                  <span className="input-group-text bg-white border-end-0">
-                    <FaSearch className="text-muted" size={16} />
-                  </span>
-                  <input
+                <input
                     type="text"
-                    className="form-control border-start-0"
+                    className="form-control"
                     placeholder="Search store brands..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ paddingLeft: '12px' }}
+                  />
+                  <FaSearch 
+                    className="position-absolute text-muted" 
+                    style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}
+                    size={14}
                   />
                 </div>
                 <div className="position-relative">

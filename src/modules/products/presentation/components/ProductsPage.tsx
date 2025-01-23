@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { Product } from '../../domain/interfaces/IProductsRepository';
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
-import { ProductsTable, SortField } from './ProductsTable';
+import { ProductsTable, SortField } from './tables/ProductsTable';
 import { ProductFormModal } from './modals/ProductFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';

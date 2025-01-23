@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FaSort, FaSortDown, FaSortUp, FaBox } from 'react-icons/fa';
-import { Product } from '../../domain/interfaces/IProductsRepository';
+import { Product } from '../../../domain/interfaces/IProductsRepository';
 
 export type SortField = 'id' | 'name' | 'barcode' | 'category_name' | 'created_at';
 type SortOrder = 'asc' | 'desc';
