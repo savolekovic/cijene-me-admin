@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FaPlus, FaSpinner, FaSearch, FaInbox, FaSort, FaFilter } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
@@ -38,12 +39,79 @@ const CategoriesPage: React.FC = () => {
 
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  // Query for fetching categories
+  const { 
+    data: categoriesData = [], 
+    isLoading: queryLoading 
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      try {
+        const data = await categoriesRepository.getAllCategories();
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid data format received from server');
+        }
+        return data;
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('Unauthorized')) {
+          logout();
+          navigate('/');
+        }
+        throw err;
+      }
+    }
+  });
+
+  // Mutation for creating categories
+  const createMutation = useMutation<Category, Error, { name: string }>({
+    mutationFn: ({ name }) => categoriesRepository.createCategory(name),
+    onSuccess: (newCategory) => {
+      queryClient.setQueryData(['categories'], (oldData: Category[] | undefined) => 
+        oldData ? [...oldData, newCategory] : [newCategory]
+      );
+      setShowAddModal(false);
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to create category');
+      setTimeout(() => setError(''), 3000);
+    }
+  });
+
+  // Mutation for updating categories
+  const updateMutation = useMutation<Category, Error, { id: number; name: string }>({
+    mutationFn: ({ id, name }) => categoriesRepository.updateCategory(id, name),
+    onSuccess: (updatedCategory) => {
+      queryClient.setQueryData(['categories'], (oldData: Category[] | undefined) =>
+        oldData ? oldData.map(category => 
+          category.id === updatedCategory.id ? updatedCategory : category
+        ) : []
+      );
+      setEditingCategory(null);
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to update category');
+      setTimeout(() => setError(''), 3000);
+    }
+  });
+
+  // Mutation for deleting categories
+  const deleteMutation = useMutation<void, Error, number>({
+    mutationFn: (categoryId: number) => categoriesRepository.deleteCategory(categoryId),
+    onSuccess: (_, categoryId) => {
+      queryClient.setQueryData(['categories'], (oldData: Category[] | undefined) => 
+        oldData ? oldData.filter(category => category.id !== categoryId) : []
+      );
+      setDeleteId(null);
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to delete category');
+      setTimeout(() => setError(''), 3000);
+    }
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -64,25 +132,8 @@ const CategoriesPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isDropdownOpen]);
 
-  const fetchCategories = async () => {
-    try {
-      const data = await categoriesRepository.getAllCategories();
-      setCategories(data);
-      setError('');
-    } catch (err) {
-      if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
-        logout();
-        navigate('/');
-      } else {
-        setError('Failed to load categories');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const getSortedCategories = () => {
-    return [...categories].sort((a, b) => {
+    return [...categoriesData].sort((a, b) => {
       if (sortField === 'name') {
         return sortOrder === 'asc' 
           ? a.name.localeCompare(b.name)
@@ -169,7 +220,7 @@ const CategoriesPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (queryLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
         <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
@@ -289,7 +340,7 @@ const CategoriesPage: React.FC = () => {
             <div className="col-12 col-sm-4 col-md-6">
               <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
                 <span className="badge bg-secondary">
-                  Total Categories: {categories.length}
+                  Total Categories: {categoriesData.length}
                 </span>
               </div>
             </div>
@@ -302,7 +353,7 @@ const CategoriesPage: React.FC = () => {
             onDelete={handleDelete}
           />
 
-          {categories.length === 0 && !error && (
+          {categoriesData.length === 0 && !error && (
             <div className="text-center py-5">
               <div className="text-muted mb-2">
                 <FaInbox size={48} />
