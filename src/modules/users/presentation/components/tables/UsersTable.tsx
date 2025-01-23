@@ -27,6 +27,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
       <FaSortUp className="ms-1 text-primary" /> : 
       <FaSortDown className="ms-1 text-primary" />;
   };
+
   const getRoleBadgeClass = (role: string) => {
     switch (role.toLowerCase()) {
       case 'moderator':
@@ -41,30 +42,63 @@ const UsersTable: React.FC<UsersTableProps> = ({
       {/* Desktop View */}
       <div className="d-none d-md-block">
         <div className="table-responsive">
-          <table className="table table-hover align-middle">
+          <table className="table table-hover align-middle mb-0">
             <thead>
-              <tr>
-                <th style={{ width: '27.5%', padding: '0.75rem 1rem' }}>Name</th>
-                <th style={{ width: '27.5%', padding: '0.75rem 1rem' }}>Email</th>
-                <th style={{ width: '10%', padding: '0.75rem 1rem' }}>Role</th>
-                <th style={{ width: '15%', textAlign: 'right', padding: '0.75rem 1rem' }}>Created At</th>
-                <th style={{ width: '15%', textAlign: 'right', padding: '0.75rem 1rem' }}>Actions</th>
+              <tr className="border-bottom">
+                <th 
+                  style={{ width: '27.5%', padding: '0.5rem 1rem', cursor: 'pointer' }}
+                  onClick={() => onSort('full_name')}
+                  className="align-middle"
+                >
+                  Name
+                </th>
+                <th 
+                  style={{ width: '27.5%', padding: '0.5rem 1rem', cursor: 'pointer' }}
+                  onClick={() => onSort('email')}
+                  className="align-middle"
+                >
+                  Email
+                </th>
+                <th 
+                  style={{ width: '10%', padding: '0.5rem 1rem', cursor: 'pointer' }}
+                  onClick={() => onSort('role')}
+                  className="align-middle"
+                >
+                  Role
+                </th>
+                <th 
+                  style={{ width: '15%', padding: '0.5rem 1rem', cursor: 'pointer' }}
+                  onClick={() => onSort('created_at')}
+                  className="text-end align-middle"
+                >
+                  Created At
+                </th>
+                <th 
+                  style={{ width: '15%', padding: '0.5rem 1rem' }}
+                  className="text-end align-middle"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
-            <tbody className="border-top-0">
+            <tbody>
               {users.map((user) => (
-                <tr key={user.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
-                  <td style={{ padding: '0.75rem 1rem' }}>{user.full_name}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{user.email}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                   <span className={getRoleBadgeClass(user.role)} style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+                <tr key={user.id} className="border-bottom">
+                  <td className="align-middle" style={{ padding: '0.5rem 1rem' }}>
+                    {user.full_name}
+                  </td>
+                  <td className="align-middle" style={{ padding: '0.5rem 1rem' }}>
+                    {user.email}
+                  </td>
+                  <td className="align-middle" style={{ padding: '0.5rem 1rem' }}>
+                    <span className={getRoleBadgeClass(user.role)} style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
                       {user.role}
                     </span>
                   </td>
-                  <td className="text-end" style={{ padding: '0.75rem 1rem' }}>
+                  <td className="text-end align-middle" style={{ padding: '0.5rem 1rem' }}>
                     {new Date(user.created_at).toLocaleDateString()}
                   </td>
-                  <td className="text-end" style={{ padding: '0.75rem 1rem' }}>
+                  <td className="text-end align-middle" style={{ padding: '0.5rem 1rem' }}>
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-primary"
@@ -77,7 +111,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                         onClick={() => onDelete(user.id)}
                         disabled={deletingUsers.includes(user.id)}
                       >
-                        Delete
+                        {deletingUsers.includes(user.id) ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </td>
@@ -97,8 +131,8 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 <h5 className="card-title mb-1">{user.full_name}</h5>
                 <div className="text-muted small mb-2">{user.email}</div>
                 <div className="d-flex align-items-center gap-2">
-                  <span className="badge bg-secondary">
-                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  <span className={getRoleBadgeClass(user.role)}>
+                    {user.role}
                   </span>
                   <span className="text-muted small">
                     Added on {new Date(user.created_at).toLocaleDateString()}
@@ -117,7 +151,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   onClick={() => onDelete(user.id)}
                   disabled={deletingUsers.includes(user.id)}
                 >
-                  Delete
+                  {deletingUsers.includes(user.id) ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>
@@ -126,6 +160,6 @@ const UsersTable: React.FC<UsersTableProps> = ({
       </div>
     </>
   );
-};
+}
 
 export default UsersTable; 

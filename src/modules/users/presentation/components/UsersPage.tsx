@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FaSearch, FaSort, FaInbox } from 'react-icons/fa';
+import { FaSearch, FaSort, FaInbox, FaPlus, FaSortUp, FaSortDown, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../../domain/interfaces/IUsersRepository';
 import { UsersRepository } from '../../infrastructure/UsersRepository';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
-import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
 import UsersTable from './tables/UsersTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import ChangeRoleModal from './modals/ChangeRoleModal';
@@ -167,22 +166,15 @@ const UsersPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
+      </div>
+    );
   }
 
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show" role="alert">
-          {error}
-          <button 
-            type="button" 
-            className="btn-close" 
-            onClick={() => setError('')}
-          />
-        </div>
-      )}
-
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="h3 mb-0">Users Management</h1>
       </div>
@@ -193,7 +185,7 @@ const UsersPage: React.FC = () => {
             <div className="col-12 col-sm-8 col-md-6">
               <div className="d-flex gap-2">
                 <div className="input-group flex-grow-1">
-                <input
+                  <input
                     type="text"
                     className="form-control"
                     placeholder="Search users by name, email or role..."
@@ -310,6 +302,12 @@ const UsersPage: React.FC = () => {
               </div>
             </div>
           </div>
+          {error && (
+            <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+              {error}
+              <button type="button" className="btn-close" onClick={() => setError('')} />
+            </div>
+          )}
         </div>
         <div className="card-body p-0">
           <UsersTable 
@@ -322,7 +320,7 @@ const UsersPage: React.FC = () => {
             deletingUsers={deleteMutation.isPending ? [deleteUserId!] : []}
           />
 
-          {filteredUsers.length === 0 && (
+          {filteredUsers.length === 0 && !error && (
             <div className="text-center py-5">
               <div className="text-muted mb-2">
                 <FaInbox size={48} />
