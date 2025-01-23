@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { FaSpinner } from 'react-icons/fa';
 import { Category } from '../../../../categories/domain/interfaces/ICategoriesRepository';
 import { validateProductName, validateImageInput, validateEANBarcode } from '../../../../shared/utils/validation';
 
@@ -9,6 +10,7 @@ interface ProductFormModalProps {
   onSubmit: (e: React.FormEvent) => Promise<void>;
   categories: Category[];
   isProcessing: boolean;
+  isLoadingCategories: boolean;
   name: string;
   setName: (name: string) => void;
   barcode: string;
@@ -26,6 +28,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onSubmit,
   categories,
   isProcessing,
+  isLoadingCategories,
   name,
   setName,
   barcode,
@@ -112,6 +115,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
       <div className="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div className="modal-content">
+          {isLoadingCategories && (
+            <div 
+              className="progress rounded-0" 
+              style={{ height: '3px', position: 'absolute', width: '100%', top: 0 }}
+            >
+              <div 
+                className="progress-bar progress-bar-striped progress-bar-animated" 
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
           <form onSubmit={onSubmit}>
             <div className="modal-header">
               <h5 className="modal-title">{title}</h5>
@@ -119,7 +133,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 type="button"
                 className="btn-close"
                 onClick={onClose}
-                disabled={isProcessing}
+                disabled={isProcessing || isLoadingCategories}
               />
             </div>
             <div className="modal-body">
@@ -203,15 +217,23 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   value={categoryId}
                   onChange={(e) => setCategoryId(Number(e.target.value))}
                   required
-                  disabled={isProcessing}
+                  disabled={isProcessing || isLoadingCategories}
                 >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
+                  <option value="">
+                    {isLoadingCategories ? 'Loading categories...' : 'Select a category'}
+                  </option>
+                  {!isLoadingCategories && categories.map(category => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
                   ))}
                 </select>
+                {isLoadingCategories && (
+                  <div className="mt-2 text-primary">
+                    <FaSpinner className="spinner-border spinner-border-sm me-2" />
+                    Loading categories...
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer flex-column flex-sm-row">
@@ -228,6 +250,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 className="btn btn-primary w-100 w-sm-auto"
                 disabled={
                   isProcessing || 
+                  isLoadingCategories ||
                   !!nameError || 
                   !!barcodeError || 
                   !!imageError || 

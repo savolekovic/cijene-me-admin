@@ -21,7 +21,8 @@ const ProductsPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const [sortField, setSortField] = useState<SortField>('id');
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProductName, setNewProductName] = useState('');
@@ -43,14 +44,10 @@ const ProductsPage: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchProducts = async () => {
       try {
-        const [productsData, categoriesData] = await Promise.all([
-          productsRepository.getAllProducts(),
-          categoriesRepository.getAllCategories()
-        ]);
+        const productsData = await productsRepository.getAllProducts();
         setProducts(productsData);
-        setCategories(categoriesData);
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
@@ -63,8 +60,26 @@ const ProductsPage: React.FC = () => {
       }
     };
 
-    fetchData();
+    fetchProducts();
   }, [logout, navigate]);
+
+  const fetchCategories = async () => {
+    setIsLoadingCategories(true);
+    try {
+      const categoriesData = await categoriesRepository.getAllCategories();
+      setCategories(categoriesData);
+      setError('');
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('Unauthorized')) {
+        logout();
+        navigate('/');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load categories');
+      }
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -79,7 +94,6 @@ const ProductsPage: React.FC = () => {
     e.preventDefault();
     setIsCreating(true);
     try {
-      // Get the response from the API
       const response = await productsRepository.createProduct(
         newProductName,
         newProductBarcode,
@@ -87,15 +101,13 @@ const ProductsPage: React.FC = () => {
         newProductCategoryId
       );
       
-      // Find the category object
       const category = categories.find(cat => cat.id === newProductCategoryId);
       
-      // Create the product object with the category
       const productWithCategory: Product = {
         id: response.id,
         name: response.name,
         barcode: response.barcode,
-        image_url: response.image_url, // This will now be the full Cloudinary URL
+        image_url: response.image_url,
         created_at: response.created_at,
         category: category || { id: newProductCategoryId, name: 'Unknown' }
       };
@@ -117,15 +129,27 @@ const ProductsPage: React.FC = () => {
 
     setIsEditing(true);
     try {
-      const updatedProduct = await productsRepository.updateProduct(
+      const response = await productsRepository.updateProduct(
         editingProduct.id,
         editName,
         editBarcode,
         editImage,
         editCategoryId
       );
-      setProducts(products.map(prod =>
-        prod.id === updatedProduct.id ? updatedProduct : prod
+
+      const category = categories.find(cat => cat.id === editCategoryId);
+
+      const updatedProduct: Product = {
+        id: response.id,
+        name: response.name,
+        barcode: response.barcode,
+        image_url: response.image_url || editingProduct.image_url,
+        created_at: response.created_at,
+        category: category || { id: editCategoryId, name: 'Unknown' }
+      };
+
+      setProducts(products.map(product =>
+        product.id === updatedProduct.id ? updatedProduct : product
       ));
       setEditingProduct(null);
       resetEditForm();
@@ -134,6 +158,22 @@ const ProductsPage: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to update product');
     } finally {
       setIsEditing(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
+    
+    setIsDeleting(true);
+    try {
+      await productsRepository.deleteProduct(deleteId);
+      setProducts(products.filter(product => product.id !== deleteId));
+      setDeleteId(null);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete product');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -151,48 +191,34 @@ const ProductsPage: React.FC = () => {
     setEditCategoryId(0);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteId) return;
-
-    setIsDeleting(true);
-    try {
-      await productsRepository.deleteProduct(deleteId);
-      setProducts(products.filter(prod => prod.id !== deleteId));
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete product');
-    } finally {
-      setIsDeleting(false);
-      setDeleteId(null);
-    }
-  };
-
   const handleCloseAddModal = () => {
     setShowAddModal(false);
-    setNewProductName('');
-    setNewProductBarcode('');
-    setNewProductImage(null);
-    setNewProductCategoryId(0);
+    resetAddForm();
   };
 
   const handleCloseEditModal = () => {
     setEditingProduct(null);
-    setEditName('');
-    setEditBarcode('');
-    setEditImage(null);
-    setEditCategoryId(0);
+    resetEditForm();
   };
 
-  const handleEditClick = (product: Product) => {
+  const handleEditClick = async (product: Product) => {
     setEditingProduct(product);
     setEditName(product.name);
     setEditBarcode(product.barcode);
     setEditImage(null);
     setEditCategoryId(product.category.id);
+    
+    if (categories.length === 0) {
+      await fetchCategories();
+    }
   };
 
   const addProduct = () => {
     setShowAddModal(true);
+    
+    if (categories.length === 0) {
+      fetchCategories();
+    }
   };
 
   const filteredProducts = products.filter(product =>
@@ -210,7 +236,7 @@ const ProductsPage: React.FC = () => {
         <h1 className="h3 mb-0">Products</h1>
         <button
           className="btn btn-primary d-inline-flex align-items-center gap-2"
-          onClick={() => addProduct()}
+          onClick={addProduct}
         >
           <FaPlus size={14} />
           <span>Add Product</span>
@@ -366,7 +392,6 @@ const ProductsPage: React.FC = () => {
         </div>
       </div>
 
-      { /* Add Form Modal */}
       <ProductFormModal
         isOpen={showAddModal}
         mode="add"
@@ -374,6 +399,7 @@ const ProductsPage: React.FC = () => {
         onSubmit={handleCreateProduct}
         categories={categories}
         isProcessing={isCreating}
+        isLoadingCategories={isLoadingCategories}
         name={newProductName}
         setName={setNewProductName}
         barcode={newProductBarcode}
@@ -384,7 +410,6 @@ const ProductsPage: React.FC = () => {
         setCategoryId={setNewProductCategoryId}
       />
 
-      { /* Edit Form Modal */}
       <ProductFormModal
         isOpen={!!editingProduct}
         mode="edit"
@@ -392,6 +417,7 @@ const ProductsPage: React.FC = () => {
         onSubmit={handleEditSubmit}
         categories={categories}
         isProcessing={isEditing}
+        isLoadingCategories={isLoadingCategories}
         name={editName}
         setName={setEditName}
         barcode={editBarcode}
