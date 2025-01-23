@@ -1,92 +1,147 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaInbox, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaPlus, FaInbox, FaSearch, FaSort, FaSortUp, FaSortDown, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
-import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
 import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository';
 import { ProductEntriesRepository } from '../../infrastructure/ProductEntriesRepository';
-import { useDropdownData } from '../hooks/useDropdownData';
-import { useProductEntries } from '../hooks/useProductEntries';
-import { useProductEntryModals } from '../hooks/useProductEntryModals';
-import { useSorting } from '../hooks/useSorting';
+import { ProductsRepository } from '../../infrastructure/ProductsRepository';
+import { StoreLocationRepository } from '../../../stores/infrastructure/StoreLocationRepository';
 import { SortField } from '../utils/sorting';
 import { ProductEntriesTable } from './ProductEntriesTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { ProductEntryFormModal } from './modals/ProductEntryFormModal';
 
 const productEntriesRepository = new ProductEntriesRepository();
+const productsRepository = new ProductsRepository();
+const storeLocationRepository = new StoreLocationRepository();
 
 const ProductEntriesPage: React.FC = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { 
-    productEntries, 
-    setProductEntries, 
-    isDeleting, 
-    error, 
-    setError,
-    handleDeleteEntry 
-  } = useProductEntries();
+  const queryClient = useQueryClient();
 
-  const {
-    products,
-    storeLocations,
-    isLoading: isLoadingDropdownData,
-    fetchData: fetchDropdownData
-  } = useDropdownData();
-
-  const {
-    showAddModal,
-    setShowAddModal,
-    isCreating,
-    setIsCreating,
-    newEntryProductId,
-    setNewEntryProductId,
-    newEntryStoreLocationId,
-    setNewEntryStoreLocationId,
-    newEntryPrice,
-    setNewEntryPrice,
-    resetAddForm,
-    editingEntry,
-    setEditingEntry,
-    isEditing,
-    setIsEditing,
-    editProductId,
-    setEditProductId,
-    editStoreLocationId,
-    setEditStoreLocationId,
-    editPrice,
-    setEditPrice,
-    resetEditForm,
-    deleteId,
-    setDeleteId
-  } = useProductEntryModals();
-
-  const { sortField, sortOrder, handleSort } = useSorting(productEntries);
-
-  const [isLoading, setIsLoading] = useState(true);
+  // State
+  const [error, setError] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchEntries = async () => {
+  // Modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newEntryProductId, setNewEntryProductId] = useState(0);
+  const [newEntryStoreLocationId, setNewEntryStoreLocationId] = useState(0);
+  const [newEntryPrice, setNewEntryPrice] = useState('');
+  const [editingEntry, setEditingEntry] = useState<ProductEntry | null>(null);
+  const [editProductId, setEditProductId] = useState(0);
+  const [editStoreLocationId, setEditStoreLocationId] = useState(0);
+  const [editPrice, setEditPrice] = useState('');
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  // Sorting
+  const [sortField, setSortField] = useState<SortField>('product_name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Query for fetching entries
+  const { 
+    data: productEntries = [], 
+    isLoading: queryLoading 
+  } = useQuery({
+    queryKey: ['productEntries'],
+    queryFn: async () => {
       try {
-        const entriesData = await productEntriesRepository.getAllProductEntries();
-        setProductEntries(entriesData);
+        const data = await productEntriesRepository.getAllProductEntries();
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid data format received from server');
+        }
+        return data;
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
           navigate('/');
-        } else {
-          setError(err instanceof Error ? err.message : 'An error occurred');
         }
-      } finally {
-        setIsLoading(false);
+        throw err;
       }
-    };
+    }
+  });
 
-    fetchEntries();
-  }, [logout, navigate, setProductEntries, setError]);
+  // Query for dropdown data
+  const {
+    data: dropdownData = { products: [], storeLocations: [] },
+    isLoading: isLoadingDropdownData
+  } = useQuery({
+    queryKey: ['dropdownData'],
+    queryFn: async () => {
+      const [products, storeLocations] = await Promise.all([
+        productsRepository.getAllProducts(),
+        storeLocationRepository.getAllStoreLocations()
+      ]);
+      return { products, storeLocations };
+    },
+    enabled: showAddModal || !!editingEntry
+  });
+
+  // Mutation for creating entries
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      return productEntriesRepository.createProductEntry(
+        Number(newEntryProductId),
+        Number(newEntryStoreLocationId),
+        Number(newEntryPrice)
+      );
+    },
+    onSuccess: (newEntry) => {
+      queryClient.setQueryData(['productEntries'], (oldData: ProductEntry[] | undefined) => 
+        oldData ? [...oldData, newEntry] : [newEntry]
+      );
+      resetAddForm();
+      setShowAddModal(false);
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to create product entry');
+      setTimeout(() => setError(''), 3000);
+    }
+  });
+
+  // Mutation for updating entries
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingEntry) throw new Error('No entry selected for editing');
+      return productEntriesRepository.updateProductEntry(
+        editingEntry.id,
+        Number(editProductId),
+        Number(editStoreLocationId),
+        Number(editPrice)
+      );
+    },
+    onSuccess: (updatedEntry) => {
+      queryClient.setQueryData(['productEntries'], (oldData: ProductEntry[] | undefined) =>
+        oldData ? oldData.map(entry =>
+          entry.id === updatedEntry.id ? updatedEntry : entry
+        ) : []
+      );
+      resetEditForm();
+      setEditingEntry(null);
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to update product entry');
+      setTimeout(() => setError(''), 3000);
+    }
+  });
+
+  // Mutation for deleting entries
+  const deleteMutation = useMutation({
+    mutationFn: (entryId: number) => productEntriesRepository.deleteProductEntry(entryId),
+    onSuccess: (_, entryId) => {
+      queryClient.setQueryData(['productEntries'], (oldData: ProductEntry[] | undefined) => 
+        oldData ? oldData.filter(entry => entry.id !== entryId) : []
+      );
+      setDeleteId(null);
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to delete product entry');
+      setTimeout(() => setError(''), 3000);
+    }
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -106,11 +161,54 @@ const ProductEntriesPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const resetAddForm = () => {
+    setNewEntryProductId(0);
+    setNewEntryStoreLocationId(0);
+    setNewEntryPrice('');
+  };
+
+  const resetEditForm = () => {
+    setEditProductId(0);
+    setEditStoreLocationId(0);
+    setEditPrice('');
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
     return sortOrder === 'asc' ?
       <FaSortUp className="ms-1 text-primary" /> :
       <FaSortDown className="ms-1 text-primary" />;
+  };
+
+  const handleCreateEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate();
+  };
+
+  const handleEditClick = (entry: ProductEntry) => {
+    setEditingEntry(entry);
+    setEditProductId(entry.product.id);
+    setEditStoreLocationId(entry.store_location.id);
+    setEditPrice(entry.price.toString());
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMutation.mutate();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
+    deleteMutation.mutate(deleteId);
   };
 
   const filteredEntries = productEntries.filter(entry =>
@@ -122,90 +220,34 @@ const ProductEntriesPage: React.FC = () => {
   const sortedAndFilteredEntries = [...filteredEntries].sort((a, b) => {
     switch (sortField) {
       case 'product_name':
-        return a.product.name.localeCompare(b.product.name);
+        return sortOrder === 'asc' ? 
+          a.product.name.localeCompare(b.product.name) :
+          b.product.name.localeCompare(a.product.name);
       case 'store_brand_name':
-        return a.store_location.store_brand.name.localeCompare(b.store_location.store_brand.name);
+        return sortOrder === 'asc' ?
+          a.store_location.store_brand.name.localeCompare(b.store_location.store_brand.name) :
+          b.store_location.store_brand.name.localeCompare(a.store_location.store_brand.name);
       case 'store_address':
-        return a.store_location.address.localeCompare(b.store_location.address);
+        return sortOrder === 'asc' ?
+          a.store_location.address.localeCompare(b.store_location.address) :
+          b.store_location.address.localeCompare(a.store_location.address);
       case 'price':
-        return a.price - b.price;
+        return sortOrder === 'asc' ? a.price - b.price : b.price - a.price;
       case 'created_at':
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        return sortOrder === 'asc' ?
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime() :
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       default:
         return 0;
     }
   });
 
-  if (sortOrder === 'desc') {
-    sortedAndFilteredEntries.reverse();
-  }
-
-  const handleAddClick = () => {
-    setShowAddModal(true);
-    fetchDropdownData();
-  };
-
-  const handleEditClick = (entry: ProductEntry) => {
-    setEditingEntry(entry);
-    setEditProductId(entry.product.id);
-    setEditStoreLocationId(entry.store_location.id);
-    setEditPrice(entry.price.toString());
-    fetchDropdownData();
-  };
-
-  const handleCreateEntry = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCreating(true);
-    try {
-      const newEntry = await productEntriesRepository.createProductEntry(
-        Number(newEntryProductId),
-        Number(newEntryStoreLocationId),
-        Number(newEntryPrice)
-      );
-      setProductEntries(prevEntries => [...prevEntries, newEntry]);
-      resetAddForm();
-      setShowAddModal(false);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create product entry');
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingEntry) return;
-
-    setIsEditing(true);
-    try {
-      const updatedEntry = await productEntriesRepository.updateProductEntry(
-        editingEntry.id,
-        editProductId,
-        editStoreLocationId,
-        Number(editPrice)
-      );
-      setProductEntries(productEntries.map(entry =>
-        entry.id === updatedEntry.id ? updatedEntry : entry
-      ));
-      resetEditForm();
-      setEditingEntry(null);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update product entry');
-    } finally {
-      setIsEditing(false);
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteId) return;
-    await handleDeleteEntry(deleteId);
-    setDeleteId(null);
-  };
-
-  if (isLoading) {
-    return <LoadingSpinner />;
+  if (queryLoading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
+      </div>
+    );
   }
 
   return (
@@ -214,7 +256,7 @@ const ProductEntriesPage: React.FC = () => {
         <h1 className="h3 mb-0">Product Entries</h1>
         <button 
           className="btn btn-primary d-inline-flex align-items-center gap-2"
-          onClick={handleAddClick}
+          onClick={() => setShowAddModal(true)}
         >
           <FaPlus size={14} />
           <span>Add Entry</span>
@@ -338,10 +380,10 @@ const ProductEntriesPage: React.FC = () => {
         isOpen={showAddModal || !!editingEntry}
         onClose={() => editingEntry ? setEditingEntry(null) : setShowAddModal(false)}
         onSubmit={editingEntry ? handleEditSubmit : handleCreateEntry}
-        products={products}
-        storeLocations={storeLocations}
+        products={dropdownData.products}
+        storeLocations={dropdownData.storeLocations}
         isLoadingDropdownData={isLoadingDropdownData}
-        isProcessing={editingEntry ? isEditing : isCreating}
+        isProcessing={editingEntry ? updateMutation.isPending : createMutation.isPending}
         productId={editingEntry ? editProductId : newEntryProductId}
         setProductId={editingEntry ? setEditProductId : setNewEntryProductId}
         locationId={editingEntry ? editStoreLocationId : newEntryStoreLocationId}
@@ -355,7 +397,7 @@ const ProductEntriesPage: React.FC = () => {
         isOpen={!!deleteId}
         title="Delete Product Entry"
         message="Are you sure you want to delete this product entry?"
-        isDeleting={isDeleting}
+        isDeleting={deleteMutation.isPending}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDeleteConfirm}
       />
