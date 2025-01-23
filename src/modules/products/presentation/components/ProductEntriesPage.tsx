@@ -282,56 +282,143 @@ const ProductEntriesPage: React.FC = () => {
                     size={14}
                   />
                 </div>
-                <div className="dropdown">
-                  <button
-                    id="sortButton"
-                    className="btn btn-outline-secondary d-flex align-items-center gap-2"
+                <div className="position-relative">
+                  <button 
+                    id="sort-button"
+                    className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
+                    type="button"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    style={{ whiteSpace: 'nowrap' }}
                   >
                     <FaSort size={14} />
-                    <span>Sort</span>
+                    <span className="d-none d-sm-inline">
+                      {sortField === 'product_name' 
+                        ? `Product (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : sortField === 'store_brand_name'
+                        ? `Brand (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : sortField === 'store_address'
+                        ? `Location (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : sortField === 'price'
+                        ? `Price (${sortOrder === 'asc' ? 'Low-High' : 'High-Low'})`
+                        : `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`}
+                    </span>
                   </button>
-                  <div 
-                    id="sortDropdown"
-                    className={`dropdown-menu dropdown-menu-end shadow-sm ${isDropdownOpen ? 'show' : ''}`}
-                    style={{ minWidth: '200px' }}
-                  >
-                    <button 
-                      className="dropdown-item d-flex justify-content-between align-items-center"
-                      onClick={() => { handleSort('product_name'); setIsDropdownOpen(false); }}
+                  {isDropdownOpen && (
+                    <div 
+                      id="sort-dropdown"
+                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
+                      style={{ 
+                        zIndex: 1000, 
+                        minWidth: '160px',
+                        border: '1px solid rgba(0,0,0,.15)'
+                      }}
                     >
-                      <span>Product Name</span>
-                      {getSortIcon('product_name')}
-                    </button>
-                    <button 
-                      className="dropdown-item d-flex justify-content-between align-items-center"
-                      onClick={() => { handleSort('store_brand_name'); setIsDropdownOpen(false); }}
-                    >
-                      <span>Store Brand</span>
-                      {getSortIcon('store_brand_name')}
-                    </button>
-                    <button 
-                      className="dropdown-item d-flex justify-content-between align-items-center"
-                      onClick={() => { handleSort('store_address'); setIsDropdownOpen(false); }}
-                    >
-                      <span>Store Location</span>
-                      {getSortIcon('store_address')}
-                    </button>
-                    <button 
-                      className="dropdown-item d-flex justify-content-between align-items-center"
-                      onClick={() => { handleSort('price'); setIsDropdownOpen(false); }}
-                    >
-                      <span>Price</span>
-                      {getSortIcon('price')}
-                    </button>
-                    <button 
-                      className="dropdown-item d-flex justify-content-between align-items-center"
-                      onClick={() => { handleSort('created_at'); setIsDropdownOpen(false); }}
-                    >
-                      <span>Date</span>
-                      {getSortIcon('created_at')}
-                    </button>
-                  </div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('product_name'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Product (A-Z)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('product_name'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Product (Z-A)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('store_brand_name'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Brand (A-Z)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('store_brand_name'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Brand (Z-A)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('store_address'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Location (A-Z)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('store_address'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Location (Z-A)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('price'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Price (Low-High)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('price'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Price (High-Low)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('created_at'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Newest)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('created_at'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Oldest)
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

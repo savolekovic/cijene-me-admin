@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FaSort, FaSortDown, FaSortUp, FaBox, FaStore, FaMapMarkerAlt } from 'react-icons/fa';
 import { ProductEntry } from '../../../domain/interfaces/IProductEntriesRepository';
-import { SortField, SortOrder } from '../../utils/sorting';
+import { SortField, SortOrder } from '../../../presentation/utils/sorting';
 
 interface ProductEntriesTableProps {
   entries: ProductEntry[];
@@ -27,6 +27,74 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
       <FaSortDown className="ms-1 text-primary" />;
   };
 
+  const Placeholder: React.FC<{ size: 'small' | 'large' }> = ({ size }) => {
+    const dimensions = size === 'small' ? 
+      { width: '50px', height: '50px', iconSize: 24 } : 
+      { width: '60px', height: '60px', iconSize: 28 };
+
+    return (
+      <div 
+        style={{ 
+          width: dimensions.width, 
+          height: dimensions.height,
+          backgroundColor: '#f8f9fa',
+          borderRadius: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <FaBox size={dimensions.iconSize} className="text-muted" />
+      </div>
+    );
+  };
+
+  const ProductImage: React.FC<{ 
+    imageUrl: string | null, 
+    name: string, 
+    size?: 'small' | 'large' 
+  }> = ({ imageUrl, name, size = 'small' }) => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+    const dimensions = size === 'small' ? 
+      { width: '50px', height: '50px' } : 
+      { width: '60px', height: '60px' };
+    
+    if (hasError || !imageUrl) {
+      return <Placeholder size={size} />;
+    }
+
+    return (
+      <div style={{ 
+        width: dimensions.width, 
+        height: dimensions.height, 
+        position: 'relative'
+      }}>
+        {isLoading && <Placeholder size={size} />}
+        <img 
+          src={imageUrl} 
+          alt={name}
+          style={{ 
+            width: dimensions.width, 
+            height: dimensions.height, 
+            objectFit: 'cover',
+            borderRadius: '4px',
+            position: isLoading ? 'absolute' : 'static',
+            top: 0,
+            left: 0,
+            opacity: isLoading ? 0 : 1,
+            transition: 'opacity 0.2s ease-in-out'
+          }}
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+        />
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Desktop View */}
@@ -35,34 +103,58 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
           <table className="table table-hover align-middle">
             <thead>
               <tr>
-                <th onClick={() => onSort('product_name')} style={{ width: '25%', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-                  Product {getSortIcon('product_name')}
+                <th 
+                  onClick={() => onSort('product_name')} 
+                  style={{ cursor: 'pointer', width: '25%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle"
+                >
+                  Product
                 </th>
-                <th onClick={() => onSort('store_address')} style={{ width: '25%', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-                  Store Location {getSortIcon('store_address')}
+                <th 
+                  onClick={() => onSort('store_brand_name')} 
+                  style={{ cursor: 'pointer', width: '20%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle"
+                >
+                  Store Brand
                 </th>
-                <th onClick={() => onSort('store_brand_name')} style={{ width: '20%', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-                  Store Brand {getSortIcon('store_brand_name')}
+                <th 
+                  onClick={() => onSort('store_address')} 
+                  style={{ cursor: 'pointer', width: '25%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle"
+                >
+                  Store Location
                 </th>
-                <th onClick={() => onSort('price')} style={{ width: '15%', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-                  Price {getSortIcon('price')}
+                <th 
+                  onClick={() => onSort('price')} 
+                  style={{ cursor: 'pointer', width: '15%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle text-end"
+                >
+                  Price
                 </th>
-                <th onClick={() => onSort('created_at')} style={{ width: '8%', padding: '0.5rem 1rem', textAlign: 'right', cursor: 'pointer' }}>
-                  Date {getSortIcon('created_at')}
+                <th 
+                  style={{ width: '15%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle text-end"
+                >
+                  Actions
                 </th>
-                <th style={{ width: '7%', padding: '0.5rem 1rem', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody className="border-top-0">
               {entries.map((entry) => (
                 <tr key={entry.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
-                  <td style={{ padding: '0.5rem 1rem' }}>{entry.product.name}</td>
-                  <td style={{ padding: '0.5rem 1rem' }}>{entry.store_location.address}</td>
-                  <td style={{ padding: '0.5rem 1rem' }}>{entry.store_location.store_brand.name}</td>
-                  <td style={{ padding: '0.5rem 1rem' }}>€{entry.price.toFixed(2)}</td>
-                  <td style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>
-                    {new Date(entry.created_at).toLocaleDateString()}
+                  <td style={{ padding: '0.5rem 1rem' }}>
+                    <div className="d-flex align-items-center gap-2">
+                      <ProductImage 
+                        imageUrl={entry.product.image_url} 
+                        name={entry.product.name}
+                        size="large"
+                      />
+                      <span>{entry.product.name}</span>
+                    </div>
                   </td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{entry.store_location.store_brand.name}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{entry.store_location.address}</td>
+                  <td style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>€{Number(entry.price).toFixed(2)}</td>
                   <td style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>
                     <div className="btn-group">
                       <button
@@ -89,25 +181,26 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
       {/* Mobile View */}
       <div className="d-md-none">
         {entries.map((entry) => (
-          <div key={entry.id} className="card mb-3 shadow-sm">
+          <div key={entry.id} className="card mb-3 ms-2 me-2">
             <div className="card-body">
               <div className="d-flex align-items-start gap-3 mb-3">
-                <div className="bg-light rounded-circle p-2">
-                  <FaBox className="text-primary" size={24} />
-                </div>
+                <ProductImage 
+                  imageUrl={entry.product.image_url} 
+                  name={entry.product.name}
+                  size="small"
+                />
                 <div className="flex-grow-1">
-                  <h5 className="card-title mb-1">{entry.product.name}</h5>
-                  <h5 className="text-primary mb-0">€{entry.price.toFixed(2)}</h5>
+                  <div className="d-flex justify-content-between align-items-start">
+                    <h5 className="card-title mb-0">{entry.product.name}</h5>
+                    <h5 className="text-primary mb-0">€{Number(entry.price).toFixed(2)}</h5>
+                  </div>
                 </div>
               </div>
 
               <div className="d-flex align-items-center mb-2">
                 <FaStore className="text-muted me-2" size={14} />
                 <span>{entry.store_location.store_brand.name}</span>
-              </div>
-
-              <div className="d-flex align-items-center mb-3">
-                <FaMapMarkerAlt className="text-muted me-2" size={14} />
+                <FaMapMarkerAlt className="text-muted ms-3 me-2" size={14} />
                 <span>{entry.store_location.address}</span>
               </div>
 
