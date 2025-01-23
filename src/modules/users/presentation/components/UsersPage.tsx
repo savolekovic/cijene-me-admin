@@ -17,7 +17,7 @@ type SortOrder = 'asc' | 'desc';
 
 const UsersPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('full_name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
@@ -85,9 +85,9 @@ const UsersPage: React.FC = () => {
   // Filter and sort users
   const filteredUsers = React.useMemo(() => {
     let filtered = users.filter(user => 
-      user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchTerm.toLowerCase())
+      user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return [...filtered].sort((a, b) => {
@@ -117,7 +117,7 @@ const UsersPage: React.FC = () => {
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [users, searchTerm, sortField, sortOrder]);
+  }, [users, searchQuery, sortField, sortOrder]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -193,16 +193,17 @@ const UsersPage: React.FC = () => {
             <div className="col-12 col-sm-8 col-md-6">
               <div className="d-flex gap-2">
                 <div className="input-group flex-grow-1">
-                  <span className="input-group-text bg-white border-end-0">
-                    <FaSearch className="text-muted" size={16} />
-                  </span>
-                  <input
+                <input
                     type="text"
-                    className="form-control border-start-0"
+                    className="form-control"
                     placeholder="Search users by name, email or role..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ paddingLeft: '12px' }}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <FaSearch 
+                    className="position-absolute text-muted" 
+                    style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}
+                    size={14}
                   />
                 </div>
                 <div className="position-relative">
@@ -327,7 +328,7 @@ const UsersPage: React.FC = () => {
                 <FaInbox size={48} />
               </div>
               <h5 className="fw-normal text-muted">
-                {searchTerm ? 'No users found matching your search.' : 'No users found.'}
+                {searchQuery ? 'No users found matching your search.' : 'No users found.'}
               </h5>
               <p className="text-muted small mb-0">The user list is empty</p>
             </div>
