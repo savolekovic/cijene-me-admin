@@ -172,9 +172,9 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
       {/* Mobile View */}
       <div className="d-md-none">
         {products.map((product) => (
-          <div key={product.id} className="card mb-3">
+          <div key={product.id} className="card mb-3 ms-2 me-2">
             <div className="card-body">
-              <div className="d-flex gap-3 mb-3">
+              <div className="d-flex gap-3">
                 <div style={{ width: '80px', height: '80px', flexShrink: 0 }}>
                   <ProductImage imageUrl={product.image_url} name={product.name} size="large" />
                 </div>
