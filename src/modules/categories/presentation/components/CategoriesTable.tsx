@@ -17,22 +17,37 @@ export const CategoriesTable: React.FC<CategoriesTableProps> = ({
       {/* Desktop View */}
       <div className="d-none d-md-block">
         <div className="table-responsive">
-          <table className="table table-hover align-middle">
+          <table className="table table-hover mb-0">
             <thead>
-              <tr className="border-0">
-                <th style={{ width: '60%', padding: '0.75rem 1rem' }}>Name</th>
-                <th style={{ width: '25%', textAlign: 'right', padding: '0.75rem 1rem' }}>Created At</th>
-                <th style={{ width: '15%', textAlign: 'right', padding: '0.75rem 1rem' }}>Actions</th>
+              <tr>
+                <th 
+                  style={{ width: '60%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle"
+                >
+                  Name
+                </th>
+                <th 
+                  style={{ width: '25%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle"
+                >
+                  Created At
+                </th>
+                <th 
+                  style={{ width: '15%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle text-end"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="border-top-0">
               {categories.map((category) => (
                 <tr key={category.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
-                  <td style={{ padding: '0.75rem 1rem' }}>{category.name}</td>
-                  <td className="text-end" style={{ padding: '0.75rem 1rem' }}>
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">{category.name}</td>
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">
                     {new Date(category.created_at).toLocaleDateString()}
                   </td>
-                  <td className="text-end" style={{ padding: '0.75rem 1rem' }}>
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle text-end">
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-primary"
@@ -58,13 +73,11 @@ export const CategoriesTable: React.FC<CategoriesTableProps> = ({
       {/* Mobile View */}
       <div className="d-md-none">
         {categories.map((category) => (
-          <div key={category.id} className="card mb-3">
+          <div key={category.id} className="card mb-3 ms-2 me-2">
             <div className="card-body">
-              <div className="d-flex flex-column mb-3">
-                <h5 className="card-title mb-1">{category.name}</h5>
-                <div className="text-muted small">
-                  Added on {new Date(category.created_at).toLocaleDateString()}
-                </div>
+              <h5 className="card-title mb-2">{category.name}</h5>
+              <div className="mb-3 text-muted small">
+                <i>Added on {new Date(category.created_at).toLocaleDateString()}</i>
               </div>
               <div className="d-flex gap-2">
                 <button
