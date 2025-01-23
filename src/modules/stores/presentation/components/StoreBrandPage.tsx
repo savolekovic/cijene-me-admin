@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { StoreBrand } from '../../domain/interfaces/IStoreBrandRepository';
 import { StoreBrandRepository } from '../../infrastructure/StoreBrandRepository';
@@ -15,49 +16,86 @@ type SortField = 'id' | 'name' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 const StoreBrandPage: React.FC = () => {
-  const [storeBrands, setStoreBrands] = useState<StoreBrand[]>([]);
   const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
   // Add Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newStoreBrandName, setNewStoreBrandName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
 
   // Edit Modal State
   const [editingStoreBrand, setEditingStoreBrand] = useState<StoreBrand | null>(null);
   const [editName, setEditName] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
 
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchStoreBrands();
-  }, []);
-
-  const fetchStoreBrands = async () => {
-    try {
-      const data = await storeBrandRepository.getAllStoreBrands();
-      setStoreBrands(data);
-      setError('');
-    } catch (err) {
-      if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
-        logout();
-        navigate('/');
-      } else {
-        setError('Failed to load store brands');
+  // Query for fetching store brands
+  const { data: storeBrands = [], isLoading } = useQuery({
+    queryKey: ['storeBrands'],
+    queryFn: async () => {
+      try {
+        return await storeBrandRepository.getAllStoreBrands();
+      } catch (err) {
+        if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
+          logout();
+          navigate('/');
+        }
+        throw err;
       }
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
+
+  // Mutation for creating store brands
+  const createMutation = useMutation({
+    mutationFn: (name: string) => storeBrandRepository.createStoreBrand(name),
+    onSuccess: (newStoreBrand) => {
+      queryClient.setQueryData(['storeBrands'], (old: StoreBrand[] = []) => [...old, newStoreBrand]);
+      setShowAddModal(false);
+      setNewStoreBrandName('');
+      setError('');
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to create store brand');
+    }
+  });
+
+  // Mutation for updating store brands
+  const updateMutation = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) => 
+      storeBrandRepository.updateStoreBrand(id, name),
+    onSuccess: (updatedBrand) => {
+      queryClient.setQueryData(['storeBrands'], (old: StoreBrand[] = []) =>
+        old.map(brand => brand.id === updatedBrand.id ? updatedBrand : brand)
+      );
+      setEditingStoreBrand(null);
+      setEditName('');
+      setError('');
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to update store brand');
+    }
+  });
+
+  // Mutation for deleting store brands
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => storeBrandRepository.deleteStoreBrand(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData(['storeBrands'], (old: StoreBrand[] = []) =>
+        old.filter(brand => brand.id !== deletedId)
+      );
+      setDeleteId(null);
+      setError('');
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to delete store brand');
+    }
+  });
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -70,17 +108,7 @@ const StoreBrandPage: React.FC = () => {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsCreating(true);
-    try {
-      const newStoreBrand = await storeBrandRepository.createStoreBrand(newStoreBrandName);
-      setStoreBrands(prev => [...prev, newStoreBrand]);
-      setShowAddModal(false);
-      setNewStoreBrandName('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create store brand');
-    } finally {
-      setIsCreating(false);
-    }
+    createMutation.mutate(newStoreBrandName);
   };
 
   const handleEdit = (brand: StoreBrand) => {
@@ -92,22 +120,10 @@ const StoreBrandPage: React.FC = () => {
     e.preventDefault();
     if (!editingStoreBrand) return;
     
-    setIsEditing(true);
-    try {
-      const updatedBrand = await storeBrandRepository.updateStoreBrand(
-        editingStoreBrand.id,
-        editName
-      );
-      setStoreBrands(prev => 
-        prev.map(brand => brand.id === updatedBrand.id ? updatedBrand : brand)
-      );
-      setEditingStoreBrand(null);
-      setEditName('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update store brand');
-    } finally {
-      setIsEditing(false);
-    }
+    updateMutation.mutate({
+      id: editingStoreBrand.id,
+      name: editName
+    });
   };
 
   const handleDelete = (id: number) => {
@@ -116,17 +132,7 @@ const StoreBrandPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return;
-    
-    setIsDeleting(true);
-    try {
-      await storeBrandRepository.deleteStoreBrand(deleteId);
-      setStoreBrands(prev => prev.filter(brand => brand.id !== deleteId));
-      setDeleteId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete store brand');
-    } finally {
-      setIsDeleting(false);
-    }
+    deleteMutation.mutate(deleteId);
   };
 
   if (isLoading) {
@@ -177,7 +183,7 @@ const StoreBrandPage: React.FC = () => {
         mode="add"
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddSubmit}
-        isProcessing={isCreating}
+        isProcessing={createMutation.isPending}
         name={newStoreBrandName}
         setName={setNewStoreBrandName}
       />
@@ -187,7 +193,7 @@ const StoreBrandPage: React.FC = () => {
         mode="edit"
         onClose={() => setEditingStoreBrand(null)}
         onSubmit={handleEditSubmit}
-        isProcessing={isEditing}
+        isProcessing={updateMutation.isPending}
         name={editName}
         setName={setEditName}
       />
@@ -196,7 +202,7 @@ const StoreBrandPage: React.FC = () => {
         isOpen={!!deleteId}
         title="Delete Store Brand"
         message="Are you sure you want to delete this store brand?"
-        isDeleting={isDeleting}
+        isDeleting={deleteMutation.isPending}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDeleteConfirm}
       />
