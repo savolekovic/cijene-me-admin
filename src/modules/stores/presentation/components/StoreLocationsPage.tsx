@@ -1,26 +1,28 @@
-import React, { useState } from 'react';
-import { FaPlus } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaPlus, FaSearch, FaSort, FaInbox, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
+import { StoreBrand } from '../../domain/interfaces/IStoreBrandRepository';
 import { StoreLocation } from '../../domain/interfaces/IStoreLocationRepository';
 import { StoreBrandRepository } from '../../infrastructure/StoreBrandRepository';
 import { StoreLocationRepository } from '../../infrastructure/StoreLocationRepository';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { StoreLocationFormModal } from './modals/StoreLocationFormModal';
 import { StoreLocationsTable } from './tables/StoreLocationsTable';
-import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
 
 const storeLocationRepository = new StoreLocationRepository();
 const storeBrandRepository = new StoreBrandRepository();
 
-type SortField = 'id' | 'address' | 'store_brand_name' | 'created_at';
+type SortField = 'address' | 'store_brand_name' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 const StoreLocationsPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const [sortField, setSortField] = useState<SortField>('id');
+  const [sortField, setSortField] = useState<SortField>('address');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   // Add Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -84,6 +86,7 @@ const StoreLocationsPage: React.FC = () => {
     },
     onError: (err: Error) => {
       setError(err.message || 'Failed to create store location');
+      setTimeout(() => setError(''), 3000);
     }
   });
 
@@ -102,6 +105,7 @@ const StoreLocationsPage: React.FC = () => {
     },
     onError: (err: Error) => {
       setError(err.message || 'Failed to update store location');
+      setTimeout(() => setError(''), 3000);
     }
   });
 
@@ -117,17 +121,28 @@ const StoreLocationsPage: React.FC = () => {
     },
     onError: (err: Error) => {
       setError(err.message || 'Failed to delete store location');
+      setTimeout(() => setError(''), 3000);
     }
   });
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.getElementById('sort-dropdown');
+      const button = document.getElementById('sort-button');
+      if (
+        isDropdownOpen && 
+        dropdown && 
+        button && 
+        !dropdown.contains(event.target as Node) && 
+        !button.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDropdownOpen]);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,44 +175,201 @@ const StoreLocationsPage: React.FC = () => {
     deleteMutation.mutate(deleteId);
   };
 
+  const filteredLocations = locations.filter(location =>
+    location.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    location.store_brand.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getSortedLocations = () => {
+    return [...filteredLocations].sort((a, b) => {
+      if (sortField === 'address') {
+        return sortOrder === 'asc' 
+          ? a.address.localeCompare(b.address)
+          : b.address.localeCompare(a.address);
+      } else if (sortField === 'store_brand_name') {
+        return sortOrder === 'asc'
+          ? a.store_brand.name.localeCompare(b.store_brand.name)
+          : b.store_brand.name.localeCompare(a.store_brand.name);
+      } else {
+        return sortOrder === 'asc'
+          ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+  };
+
   if (isLocationsLoading || isBrandsLoading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
+      </div>
+    );
   }
 
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show" role="alert">
-          {error}
-          <button type="button" className="btn-close" onClick={() => setError('')} />
-        </div>
-      )}
-
-      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
-        <h1 className="h3 mb-0">Store Locations Management</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0">Store Locations</h1>
         <button
-          className="btn btn-primary w-100 w-sm-auto"
+          className="btn btn-primary d-inline-flex align-items-center gap-2"
           onClick={() => setShowAddModal(true)}
         >
-          <FaPlus className="me-2" />
-          Add Store Location
+          <FaPlus size={14} />
+          <span>Add Store Location</span>
         </button>
       </div>
 
-      <div className="card">
-        <div className="card-body">
+      <div className="card shadow-sm">
+        <div className="card-header border-0 bg-white py-2">
+          <div className="row g-3 mb-0">
+            <div className="col-12 col-sm-8 col-md-6">
+              <div className="d-flex gap-2">
+                <div className="input-group flex-grow-1">
+                  <span className="input-group-text bg-white border-end-0">
+                    <FaSearch className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0"
+                    placeholder="Search store locations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ paddingLeft: '12px' }}
+                  />
+                </div>
+                <div className="position-relative">
+                  <button 
+                    id="sort-button"
+                    className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <FaSort size={14} />
+                    <span className="d-none d-sm-inline">
+                      {sortField === 'address' 
+                        ? `Address (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : sortField === 'store_brand_name'
+                        ? `Brand (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                        : `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`}
+                    </span>
+                  </button>
+                  {isDropdownOpen && (
+                    <div 
+                      id="sort-dropdown"
+                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
+                      style={{ 
+                        zIndex: 1000, 
+                        minWidth: '160px',
+                        border: '1px solid rgba(0,0,0,.15)'
+                      }}
+                    >
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('address'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Address (A-Z)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('address'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Address (Z-A)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('store_brand_name'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Brand (A-Z)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('store_brand_name'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Brand (Z-A)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('created_at'); 
+                          setSortOrder('desc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Newest)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField('created_at'); 
+                          setSortOrder('asc');
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Oldest)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 col-md-6">
+              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
+                <span className="badge bg-secondary">
+                  Total Store Locations: {locations.length}
+                </span>
+              </div>
+            </div>
+          </div>
+          {error && (
+            <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+              {error}
+              <button type="button" className="btn-close" onClick={() => setError('')} />
+            </div>
+          )}
+        </div>
+        <div className="card-body p-0">
           <StoreLocationsTable
-            locations={locations}
+            locations={getSortedLocations()}
             sortField={sortField}
             sortOrder={sortOrder}
-            onSort={handleSort}
+            onSort={(field) => {
+              if (sortField === field) {
+                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+              } else {
+                setSortField(field);
+                setSortOrder('asc');
+              }
+            }}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
 
           {locations.length === 0 && !error && (
-            <div className="text-center py-4">
-              <p className="text-muted mb-0">No store locations found.</p>
+            <div className="text-center py-5">
+              <div className="text-muted mb-2">
+                <FaInbox size={48} />
+              </div>
+              <h5 className="fw-normal text-muted">No store locations found</h5>
+              <p className="text-muted small mb-0">Create a new store location to get started</p>
             </div>
           )}
         </div>

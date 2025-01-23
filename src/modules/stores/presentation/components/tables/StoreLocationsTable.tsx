@@ -4,9 +4,9 @@ import { StoreLocation } from '../../../domain/interfaces/IStoreLocationReposito
 
 interface StoreLocationsTableProps {
   locations: StoreLocation[];
-  sortField: 'id' | 'address' | 'store_brand_name' | 'created_at';
+  sortField: 'address' | 'store_brand_name' | 'created_at';
   sortOrder: 'asc' | 'desc';
-  onSort: (field: 'id' | 'address' | 'store_brand_name' | 'created_at') => void;
+  onSort: (field: 'address' | 'store_brand_name' | 'created_at') => void;
   onEdit: (location: StoreLocation) => void;
   onDelete: (id: number) => void;
 }
@@ -31,31 +31,55 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
       {/* Desktop View */}
       <div className="d-none d-md-block">
         <div className="table-responsive">
-          <table className="table table-hover">
+          <table className="table table-hover mb-0">
             <thead>
               <tr>
-                <th onClick={() => onSort('id')} style={{ cursor: 'pointer' }}>
-                  ID {getSortIcon('id')}
+                <th 
+                  onClick={() => onSort('address')} 
+                  style={{ cursor: 'pointer', width: '40%', padding: '0.5rem 1rem' }}
+                  className="border-bottom"
+                >
+                  Address
+                  {sortField === 'address' && (
+                    <i className={`ms-1 fa fa-sort-${sortOrder}`} />
+                  )}
                 </th>
-                <th onClick={() => onSort('address')} style={{ cursor: 'pointer' }}>
-                  Address {getSortIcon('address')}
+                <th 
+                  onClick={() => onSort('store_brand_name')} 
+                  style={{ cursor: 'pointer', width: '25%' }}
+                  className="border-bottom"
+                >
+                  Store Brand
+                  {sortField === 'store_brand_name' && (
+                    <i className={`ms-1 fa fa-sort-${sortOrder}`} />
+                  )}
                 </th>
-                <th onClick={() => onSort('store_brand_name')} style={{ cursor: 'pointer' }}>
-                  Store Brand {getSortIcon('store_brand_name')}
+                <th 
+                  onClick={() => onSort('created_at')} 
+                  style={{ cursor: 'pointer', width: '20%' }}
+                  className="text-end border-bottom"
+                >
+                  Created At
+                  {sortField === 'created_at' && (
+                    <i className={`ms-1 fa fa-sort-${sortOrder}`} />
+                  )}
                 </th>
-                <th onClick={() => onSort('created_at')} style={{ cursor: 'pointer' }}>
-                  Created At {getSortIcon('created_at')}
+                <th 
+                  style={{ width: '15%' }}
+                  className="text-end border-bottom"
+                >
+                  Actions
                 </th>
-                <th className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               {locations.map((location) => (
                 <tr key={location.id}>
-                  <td>{location.id}</td>
-                  <td>{location.address}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{location.address}</td>
                   <td>{location.store_brand.name}</td>
-                  <td>{new Date(location.created_at).toLocaleDateString()}</td>
+                  <td className="text-end">
+                    {new Date(location.created_at).toLocaleDateString()}
+                  </td>
                   <td className="text-end">
                     <div className="btn-group">
                       <button
