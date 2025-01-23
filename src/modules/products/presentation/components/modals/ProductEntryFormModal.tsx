@@ -1,13 +1,12 @@
 import React from 'react';
-import { FaSpinner } from 'react-icons/fa';
-import { Product } from '../../../domain/interfaces/IProductsRepository';
 import { StoreLocation } from '../../../../stores/domain/interfaces/IStoreLocationRepository';
+import { ProductDropdownItem } from '../../../domain/interfaces/IProductsRepository';
 
 interface ProductEntryFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => Promise<void>;
-  products: Product[];
+  onSubmit: (e: React.FormEvent) => void;
+  products: ProductDropdownItem[];
   storeLocations: StoreLocation[];
   isLoadingDropdownData: boolean;
   isProcessing: boolean;

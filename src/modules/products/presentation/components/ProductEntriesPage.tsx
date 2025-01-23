@@ -72,7 +72,7 @@ const ProductEntriesPage: React.FC = () => {
     queryKey: ['dropdownData'],
     queryFn: async () => {
       const [products, storeLocations] = await Promise.all([
-        productsRepository.getAllProducts(),
+        productsRepository.getProductsForDropdown(),
         storeLocationRepository.getAllStoreLocations()
       ]);
       return { products, storeLocations };

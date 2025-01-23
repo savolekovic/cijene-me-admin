@@ -9,6 +9,8 @@ import { ProductsTable, SortField } from './tables/ProductsTable';
 import { ProductFormModal } from './modals/ProductFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';
+import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
+import { Category } from '../../../categories/domain/interfaces/ICategoriesRepository';
 
 const productsRepository = new ProductsRepository();
 const categoriesRepository = new CategoriesRepository();
@@ -34,18 +36,20 @@ const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const queryClient = useQueryClient();
 
   // Query for fetching products
   const { 
-    data: products = [], 
+    data: productsResponse,
     isLoading: queryLoading 
-  } = useQuery({
-    queryKey: ['products'],
+  } = useQuery<PaginatedResponse<Product>>({
+    queryKey: ['products', searchQuery, currentPage, pageSize],
     queryFn: async () => {
       try {
-        const data = await productsRepository.getAllProducts();
-        if (!Array.isArray(data)) {
+        const data = await productsRepository.getAllProducts(searchQuery, currentPage, pageSize);
+        if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
         return data;
@@ -58,6 +62,15 @@ const ProductsPage: React.FC = () => {
       }
     }
   });
+
+  const products = productsResponse?.data || [];
+  const totalCount = productsResponse?.total_count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Reset to first page when search query or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, pageSize]);
 
   // Query for fetching categories
   const {
@@ -80,7 +93,7 @@ const ProductsPage: React.FC = () => {
       );
     },
     onSuccess: (response) => {
-      const category = categories.find(cat => cat.id === newProductCategoryId);
+      const category = categories.find((cat: Category) => cat.id === newProductCategoryId);
       const productWithCategory: Product = {
         id: response.id,
         name: response.name,
@@ -90,9 +103,13 @@ const ProductsPage: React.FC = () => {
         category: category || { id: newProductCategoryId, name: 'Unknown' }
       };
       
-      queryClient.setQueryData(['products'], (oldData: Product[] | undefined) => 
-        oldData ? [...oldData, productWithCategory] : [productWithCategory]
-      );
+      queryClient.setQueryData<PaginatedResponse<Product>>(['products', searchQuery, currentPage, pageSize], (oldData) => {
+        if (!oldData) return { total_count: 1, data: [productWithCategory] };
+        return {
+          total_count: oldData.total_count + 1,
+          data: [...oldData.data, productWithCategory]
+        };
+      });
       setShowAddModal(false);
       resetAddForm();
     },
@@ -115,7 +132,7 @@ const ProductsPage: React.FC = () => {
       );
     },
     onSuccess: (response) => {
-      const category = categories.find(cat => cat.id === editCategoryId);
+      const category = categories.find((cat: Category) => cat.id === editCategoryId);
       const updatedProduct: Product = {
         id: response.id,
         name: response.name,
@@ -125,11 +142,15 @@ const ProductsPage: React.FC = () => {
         category: category || { id: editCategoryId, name: 'Unknown' }
       };
 
-      queryClient.setQueryData(['products'], (oldData: Product[] | undefined) =>
-        oldData ? oldData.map(product =>
-          product.id === updatedProduct.id ? updatedProduct : product
-        ) : []
-      );
+      queryClient.setQueryData<PaginatedResponse<Product>>(['products', searchQuery, currentPage, pageSize], (oldData) => {
+        if (!oldData) return { total_count: 1, data: [updatedProduct] };
+        return {
+          total_count: oldData.total_count,
+          data: oldData.data.map(product =>
+            product.id === updatedProduct.id ? updatedProduct : product
+          )
+        };
+      });
       setEditingProduct(null);
       resetEditForm();
     },
@@ -143,9 +164,13 @@ const ProductsPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (productId: number) => productsRepository.deleteProduct(productId),
     onSuccess: (_, productId) => {
-      queryClient.setQueryData(['products'], (oldData: Product[] | undefined) => 
-        oldData ? oldData.filter(product => product.id !== productId) : []
-      );
+      queryClient.setQueryData<PaginatedResponse<Product>>(['products', searchQuery, currentPage, pageSize], (oldData) => {
+        if (!oldData) return { total_count: 0, data: [] };
+        return {
+          total_count: oldData.total_count - 1,
+          data: oldData.data.filter(product => product.id !== productId)
+        };
+      });
       setDeleteId(null);
     },
     onError: (err) => {
@@ -210,11 +235,6 @@ const ProductsPage: React.FC = () => {
     deleteMutation.mutate(deleteId);
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.barcode.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   if (queryLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
@@ -242,7 +262,7 @@ const ProductsPage: React.FC = () => {
             <div className="col-12 col-sm-8 col-md-6">
               <div className="d-flex gap-2">
                 <div className="input-group flex-grow-1">
-                <input
+                  <input
                     type="text"
                     className="form-control"
                     placeholder="Search products..."
@@ -350,9 +370,19 @@ const ProductsPage: React.FC = () => {
               </div>
             </div>
             <div className="col-12 col-sm-4 col-md-6">
-              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
+              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100 gap-2">
+                <select 
+                  className="form-select" 
+                  style={{ width: 'auto' }}
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                >
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                </select>
                 <span className="badge bg-secondary">
-                  Total Products: {products.length}
+                  Total Products: {totalCount}
                 </span>
               </div>
             </div>
@@ -366,7 +396,7 @@ const ProductsPage: React.FC = () => {
         </div>
         <div className="card-body p-0">
           <ProductsTable
-            products={filteredProducts}
+            products={products}
             sortField={sortField}
             sortOrder={sortOrder}
             onSort={(field) => {
@@ -382,10 +412,35 @@ const ProductsPage: React.FC = () => {
               <div className="text-muted mb-2">
                 <FaInbox size={48} />
               </div>
-              <h5 className="fw-normal text-muted">No products found</h5>
-              <p className="text-muted small mb-0">Create a new product to get started</p>
+              <h5 className="fw-normal text-muted">
+                {searchQuery ? 'No products found matching your search.' : 'No products found'}
+              </h5>
+              <p className="text-muted small mb-0">
+                {searchQuery ? 'Try a different search term' : 'Create a new product to get started'}
+              </p>
             </div>
           )}
+        </div>
+        <div className="card-footer bg-white border-0 py-3">
+          <div className="d-flex justify-content-center align-items-center gap-2">
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="mx-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 

@@ -22,7 +22,7 @@ export const useDropdownData = () => {
         productsRepository.getAllProducts(),
         storeLocationRepository.getAllStoreLocations()
       ]);
-      setProducts(productsData);
+      setProducts(productsData.data);
       setStoreLocations(locationsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load form data');

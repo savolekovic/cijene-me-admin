@@ -1,11 +1,17 @@
 import { api, uploadApi, createFormData } from '../../../services/api';
-import { IProductsRepository, Product } from '../domain/interfaces/IProductsRepository';
+import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
+import { IProductsRepository, Product, ProductDropdownItem } from '../domain/interfaces/IProductsRepository';
 import axios from 'axios';
 
 export class ProductsRepository implements IProductsRepository {
-  async getAllProducts(): Promise<Product[]> {
+  async getAllProducts(search?: string, page: number = 1, per_page: number = 10): Promise<PaginatedResponse<Product>> {
     try {
       const response = await api.get('/products/', {
+        params: {
+          search: search || '',
+          per_page,
+          page
+        },
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -18,6 +24,18 @@ export class ProductsRepository implements IProductsRepository {
         throw new Error(error.response?.data?.message || 'Failed to fetch products');
       }
       throw new Error('Failed to fetch products');
+    }
+  }
+
+  async getProductsForDropdown(): Promise<ProductDropdownItem[]> {
+    try {
+      const response = await api.get('/products/simple');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Failed to fetch products for dropdown');
+      }
+      throw new Error('Failed to fetch products for dropdown');
     }
   }
 
