@@ -85,7 +85,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
         width: dimensions.width, 
         height: dimensions.height, 
         position: 'relative',
-        margin: '0 auto'
+        margin: '0'
       }}>
         {isLoading && <Placeholder size={size} />}
         <img 
@@ -120,10 +120,10 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
           <table className="table table-hover align-middle">
             <thead>
               <tr>
-                <th style={{ width: '15%', padding: '0.5rem 1rem' }}>Image</th>
-                <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Name</th>
+                <th style={{ width: '8%', padding: '0.5rem 1rem' }}>Image</th>
+                <th style={{ width: '27%', padding: '0.5rem 1rem' }}>Name</th>
                 <th style={{ width: '20%', padding: '0.5rem 1rem' }}>Barcode</th>
-                <th style={{ width: '20%', padding: '0.5rem 1rem' }}>Category</th>
+                <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Category</th>
                 <th style={{ width: '10%', textAlign: 'right', padding: '0.5rem 1rem' }}>Created At</th>
                 <th style={{ width: '10%', textAlign: 'right', padding: '0.5rem 1rem' }}>Actions</th>
               </tr>
@@ -132,7 +132,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
               {products.map((product) => (
                 <tr key={product.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
                   <td style={{ padding: '0.5rem 1rem' }}>
-                    <div style={{ width: '60px', height: '60px', margin: '0 auto' }}>
+                    <div style={{ width: '60px', height: '60px' }}>
                       <ProductImage 
                         imageUrl={product.image_url} 
                         name={product.name} 
