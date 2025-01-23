@@ -32,40 +32,38 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
       {/* Desktop View */}
       <div className="d-none d-md-block">
         <div className="table-responsive">
-          <table className="table table-hover">
+          <table className="table table-hover align-middle">
             <thead>
               <tr>
-                <th onClick={() => onSort('id')} style={{ cursor: 'pointer' }}>
-                  ID {getSortIcon('id')}
-                </th>
-                <th onClick={() => onSort('product_name')} style={{ cursor: 'pointer' }}>
+                <th onClick={() => onSort('product_name')} style={{ width: '25%', padding: '0.5rem 1rem', cursor: 'pointer' }}>
                   Product {getSortIcon('product_name')}
                 </th>
-                <th onClick={() => onSort('store_address')} style={{ cursor: 'pointer' }}>
+                <th onClick={() => onSort('store_address')} style={{ width: '25%', padding: '0.5rem 1rem', cursor: 'pointer' }}>
                   Store Location {getSortIcon('store_address')}
                 </th>
-                <th onClick={() => onSort('store_brand_name')} style={{ cursor: 'pointer' }}>
+                <th onClick={() => onSort('store_brand_name')} style={{ width: '20%', padding: '0.5rem 1rem', cursor: 'pointer' }}>
                   Store Brand {getSortIcon('store_brand_name')}
                 </th>
-                <th onClick={() => onSort('price')} style={{ cursor: 'pointer' }}>
+                <th onClick={() => onSort('price')} style={{ width: '15%', padding: '0.5rem 1rem', cursor: 'pointer' }}>
                   Price {getSortIcon('price')}
                 </th>
-                <th onClick={() => onSort('created_at')} style={{ cursor: 'pointer' }}>
-                  Created At {getSortIcon('created_at')}
+                <th onClick={() => onSort('created_at')} style={{ width: '8%', padding: '0.5rem 1rem', textAlign: 'right', cursor: 'pointer' }}>
+                  Date {getSortIcon('created_at')}
                 </th>
-                <th>Actions</th>
+                <th style={{ width: '7%', padding: '0.5rem 1rem', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="border-top-0">
               {entries.map((entry) => (
-                <tr key={entry.id}>
-                  <td>{entry.id}</td>
-                  <td>{entry.product.name}</td>
-                  <td>{entry.store_location.address}</td>
-                  <td>{entry.store_location.store_brand.name}</td>
-                  <td>€{entry.price.toFixed(2)}</td>
-                  <td>{new Date(entry.created_at).toLocaleDateString()}</td>
-                  <td>
+                <tr key={entry.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
+                  <td style={{ padding: '0.5rem 1rem' }}>{entry.product.name}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{entry.store_location.address}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{entry.store_location.store_brand.name}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>€{entry.price.toFixed(2)}</td>
+                  <td style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>
+                    {new Date(entry.created_at).toLocaleDateString()}
+                  </td>
+                  <td style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-primary"
@@ -98,10 +96,7 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
                   <FaBox className="text-primary" size={24} />
                 </div>
                 <div className="flex-grow-1">
-                  <h6 className="card-subtitle mb-1 text-muted">#{entry.id}</h6>
-                  <h5 className="card-title mb-0">{entry.product.name}</h5>
-                </div>
-                <div className="ms-2">
+                  <h5 className="card-title mb-1">{entry.product.name}</h5>
                   <h5 className="text-primary mb-0">€{entry.price.toFixed(2)}</h5>
                 </div>
               </div>
@@ -137,12 +132,6 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
             </div>
           </div>
         ))}
-
-        {entries.length === 0 && (
-          <div className="text-center py-4">
-            <p className="text-muted mb-0">No product entries found.</p>
-          </div>
-        )}
       </div>
     </>
   );

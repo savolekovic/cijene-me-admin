@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus, FaInbox, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
@@ -9,6 +9,7 @@ import { useDropdownData } from '../hooks/useDropdownData';
 import { useProductEntries } from '../hooks/useProductEntries';
 import { useProductEntryModals } from '../hooks/useProductEntryModals';
 import { useSorting } from '../hooks/useSorting';
+import { SortField } from '../utils/sorting';
 import { ProductEntriesTable } from './ProductEntriesTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { ProductEntryFormModal } from './modals/ProductEntryFormModal';
@@ -61,9 +62,11 @@ const ProductEntriesPage: React.FC = () => {
     setDeleteId
   } = useProductEntryModals();
 
-  const { sortField, sortOrder, handleSort, sortedEntries } = useSorting(productEntries);
+  const { sortField, sortOrder, handleSort } = useSorting(productEntries);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     const fetchEntries = async () => {
@@ -85,17 +88,69 @@ const ProductEntriesPage: React.FC = () => {
     fetchEntries();
   }, [logout, navigate, setProductEntries, setError]);
 
-  const handleAddClick = async () => {
-    await fetchDropdownData();
-    setShowAddModal(true);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.getElementById('sortDropdown');
+      const button = document.getElementById('sortButton');
+      if (
+        dropdown &&
+        button &&
+        !dropdown.contains(event.target as Node) &&
+        !button.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
+    return sortOrder === 'asc' ?
+      <FaSortUp className="ms-1 text-primary" /> :
+      <FaSortDown className="ms-1 text-primary" />;
   };
 
-  const handleEditClick = async (entry: ProductEntry) => {
-    await fetchDropdownData();
+  const filteredEntries = productEntries.filter(entry =>
+    entry.product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    entry.store_location.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    entry.store_location.store_brand.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const sortedAndFilteredEntries = [...filteredEntries].sort((a, b) => {
+    switch (sortField) {
+      case 'product_name':
+        return a.product.name.localeCompare(b.product.name);
+      case 'store_brand_name':
+        return a.store_location.store_brand.name.localeCompare(b.store_location.store_brand.name);
+      case 'store_address':
+        return a.store_location.address.localeCompare(b.store_location.address);
+      case 'price':
+        return a.price - b.price;
+      case 'created_at':
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      default:
+        return 0;
+    }
+  });
+
+  if (sortOrder === 'desc') {
+    sortedAndFilteredEntries.reverse();
+  }
+
+  const handleAddClick = () => {
+    setShowAddModal(true);
+    fetchDropdownData();
+  };
+
+  const handleEditClick = (entry: ProductEntry) => {
     setEditingEntry(entry);
     setEditProductId(entry.product.id);
     setEditStoreLocationId(entry.store_location.id);
     setEditPrice(entry.price.toString());
+    fetchDropdownData();
   };
 
   const handleCreateEntry = async (e: React.FormEvent) => {
@@ -154,26 +209,108 @@ const ProductEntriesPage: React.FC = () => {
   }
 
   return (
-    <div className="container-fluid p-4">
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show" role="alert">
-          {error}
-          <button type="button" className="btn-close" onClick={() => setError('')} />
-        </div>
-      )}
-
+    <div className="container-fluid px-3 px-sm-4 py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Product Entries Management</h1>
-        <button className="btn btn-primary" onClick={handleAddClick}>
-          <FaPlus className="me-2" />
-          Add Product Entry
+        <h1 className="h3 mb-0">Product Entries</h1>
+        <button 
+          className="btn btn-primary d-inline-flex align-items-center gap-2"
+          onClick={handleAddClick}
+        >
+          <FaPlus size={14} />
+          <span>Add Entry</span>
         </button>
       </div>
 
-      <div className="card">
-        <div className="card-body">
+      <div className="card shadow-sm">
+        <div className="card-header border-0 bg-white py-2">
+          <div className="row g-3 mb-0">
+            <div className="col-12 col-sm-8 col-md-6">
+              <div className="d-flex gap-2">
+                <div className="flex-grow-1 position-relative">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search entries..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <FaSearch 
+                    className="position-absolute text-muted" 
+                    style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}
+                    size={14}
+                  />
+                </div>
+                <div className="dropdown">
+                  <button
+                    id="sortButton"
+                    className="btn btn-outline-secondary d-flex align-items-center gap-2"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  >
+                    <FaSort size={14} />
+                    <span>Sort</span>
+                  </button>
+                  <div 
+                    id="sortDropdown"
+                    className={`dropdown-menu dropdown-menu-end shadow-sm ${isDropdownOpen ? 'show' : ''}`}
+                    style={{ minWidth: '200px' }}
+                  >
+                    <button 
+                      className="dropdown-item d-flex justify-content-between align-items-center"
+                      onClick={() => { handleSort('product_name'); setIsDropdownOpen(false); }}
+                    >
+                      <span>Product Name</span>
+                      {getSortIcon('product_name')}
+                    </button>
+                    <button 
+                      className="dropdown-item d-flex justify-content-between align-items-center"
+                      onClick={() => { handleSort('store_brand_name'); setIsDropdownOpen(false); }}
+                    >
+                      <span>Store Brand</span>
+                      {getSortIcon('store_brand_name')}
+                    </button>
+                    <button 
+                      className="dropdown-item d-flex justify-content-between align-items-center"
+                      onClick={() => { handleSort('store_address'); setIsDropdownOpen(false); }}
+                    >
+                      <span>Store Location</span>
+                      {getSortIcon('store_address')}
+                    </button>
+                    <button 
+                      className="dropdown-item d-flex justify-content-between align-items-center"
+                      onClick={() => { handleSort('price'); setIsDropdownOpen(false); }}
+                    >
+                      <span>Price</span>
+                      {getSortIcon('price')}
+                    </button>
+                    <button 
+                      className="dropdown-item d-flex justify-content-between align-items-center"
+                      onClick={() => { handleSort('created_at'); setIsDropdownOpen(false); }}
+                    >
+                      <span>Date</span>
+                      {getSortIcon('created_at')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 col-md-6">
+              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
+                <span className="badge bg-secondary">
+                  Total Entries: {filteredEntries.length}
+                </span>
+              </div>
+            </div>
+          </div>
+          {error && (
+            <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+              {error}
+              <button type="button" className="btn-close" onClick={() => setError('')} />
+            </div>
+          )}
+        </div>
+        <div className="card-body p-0">
           <ProductEntriesTable
-            entries={sortedEntries}
+            entries={sortedAndFilteredEntries}
             sortField={sortField}
             sortOrder={sortOrder}
             onSort={handleSort}
@@ -181,9 +318,17 @@ const ProductEntriesPage: React.FC = () => {
             onDelete={setDeleteId}
           />
 
-          {productEntries.length === 0 && !error && (
-            <div className="text-center py-4">
-              <p className="text-muted">No product entries found.</p>
+          {filteredEntries.length === 0 && !error && (
+            <div className="text-center py-5">
+              <div className="text-muted mb-2">
+                <FaInbox size={48} />
+              </div>
+              <h5 className="fw-normal text-muted">
+                {searchQuery ? 'No matching entries found' : 'No entries found'}
+              </h5>
+              <p className="text-muted small mb-0">
+                {searchQuery ? 'Try adjusting your search' : 'Create a new entry to get started'}
+              </p>
             </div>
           )}
         </div>
