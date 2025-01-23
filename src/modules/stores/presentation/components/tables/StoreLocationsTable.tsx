@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaSort, FaSortDown, FaSortUp, FaMapMarkerAlt, FaStore } from 'react-icons/fa';
+import { FaSort, FaSortDown, FaSortUp, FaStore } from 'react-icons/fa';
 import { StoreLocation } from '../../../domain/interfaces/IStoreLocationRepository';
 
 interface StoreLocationsTableProps {
@@ -37,7 +37,7 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
                 <th 
                   onClick={() => onSort('address')} 
                   style={{ cursor: 'pointer', width: '40%', padding: '0.5rem 1rem' }}
-                  className="border-bottom"
+                  className="border-bottom align-middle"
                 >
                   Address
                   {sortField === 'address' && (
@@ -47,7 +47,7 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
                 <th 
                   onClick={() => onSort('store_brand_name')} 
                   style={{ cursor: 'pointer', width: '25%' }}
-                  className="border-bottom"
+                  className="border-bottom align-middle"
                 >
                   Store Brand
                   {sortField === 'store_brand_name' && (
@@ -57,7 +57,7 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
                 <th 
                   onClick={() => onSort('created_at')} 
                   style={{ cursor: 'pointer', width: '20%' }}
-                  className="text-end border-bottom"
+                  className="border-bottom align-middle"
                 >
                   Created At
                   {sortField === 'created_at' && (
@@ -66,7 +66,7 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
                 </th>
                 <th 
                   style={{ width: '15%' }}
-                  className="text-end border-bottom"
+                  className="border-bottom align-middle"
                 >
                   Actions
                 </th>
@@ -75,12 +75,12 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
             <tbody>
               {locations.map((location) => (
                 <tr key={location.id}>
-                  <td style={{ padding: '0.5rem 1rem' }}>{location.address}</td>
-                  <td>{location.store_brand.name}</td>
-                  <td className="text-end">
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">{location.address}</td>
+                  <td className="align-middle">{location.store_brand.name}</td>
+                  <td className="align-middle">
                     {new Date(location.created_at).toLocaleDateString()}
                   </td>
-                  <td className="text-end">
+                  <td className="align-middle">
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-primary"
@@ -106,27 +106,16 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
       {/* Mobile View */}
       <div className="d-md-none">
         {locations.map((location) => (
-          <div key={location.id} className="card mb-3 shadow-sm">
+          <div key={location.id} className="card mb-3 ms-2 me-2">
             <div className="card-body">
-              <div className="d-flex align-items-start gap-3 mb-3">
-                <div className="bg-light rounded-circle p-2">
-                  <FaMapMarkerAlt className="text-primary" size={24} />
-                </div>
-                <div className="flex-grow-1">
-                  <h6 className="card-subtitle mb-1 text-muted">#{location.id}</h6>
-                  <h5 className="card-title mb-0">{location.address}</h5>
-                </div>
-              </div>
-
+              <h5 className="card-title mb-2">{location.address}</h5>
               <div className="d-flex align-items-center mb-2">
                 <FaStore className="text-muted me-2" size={14} />
                 <span>{location.store_brand.name}</span>
               </div>
-
               <div className="mb-3 text-muted small">
                 <i>Added on {new Date(location.created_at).toLocaleDateString()}</i>
               </div>
-
               <div className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-outline-primary flex-grow-1"
