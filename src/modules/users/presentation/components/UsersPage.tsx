@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FaSearch, FaSort, FaInbox } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { User } from '../../domain/interfaces/IUsersRepository';
 import { UsersRepository } from '../../infrastructure/UsersRepository';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { FaSearch, FaSort, FaInbox } from 'react-icons/fa';
 import { LoadingSpinner } from '../../../shared/presentation/components/LoadingSpinner';
 import UsersTable from './tables/UsersTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
@@ -15,65 +16,81 @@ type SortField = 'full_name' | 'email' | 'role' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('full_name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const { accessToken, logout } = useAuth();
-  const navigate = useNavigate();
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
-  const [deletingUsers, setDeletingUsers] = useState<number[]>([]);
   const [changeRoleUser, setChangeRoleUser] = useState<User | null>(null);
-  const [isChangingRole, setIsChangingRole] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!accessToken) {
-      navigate('/');
-      return;
-    }
-
-    const fetchUsers = async () => {
+  // Query for fetching users
+  const { 
+    data: users = [], 
+    isLoading 
+  } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
       try {
         const data = await usersRepository.getAllUsers();
-        if (Array.isArray(data)) {
-          setUsers(data);
-          setFilteredUsers(data);
-        } else {
-          console.error('Received non-array data:', data);
-          setError('Invalid data format received from server');
-          setUsers([]);
-          setFilteredUsers([]);
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid data format received from server');
         }
+        return data;
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
           navigate('/');
-        } else {
-          setError(err instanceof Error ? err.message : 'An error occurred');
-          setUsers([]);
-          setFilteredUsers([]);
         }
-      } finally {
-        setIsLoading(false);
+        throw err;
       }
-    };
+    }
+  });
 
-    fetchUsers();
-  }, [accessToken, navigate, logout]);
+  // Mutation for deleting users
+  const deleteMutation = useMutation<{ message: string }, Error, number>({
+    mutationFn: (userId: number) => usersRepository.deleteUser(userId),
+    onSuccess: (_, userId) => {
+      queryClient.setQueryData(['users'], (oldData: User[] | undefined) => 
+        oldData ? oldData.filter(user => user.id !== userId) : []
+      );
+      setDeleteUserId(null);
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setTimeout(() => setError(''), 3000);
+    }
+  });
 
-  useEffect(() => {
+  // Mutation for changing user role
+  const changeRoleMutation = useMutation<User, Error, { userId: number; newRole: string }>({
+    mutationFn: ({ userId, newRole }) => 
+      usersRepository.changeRole(userId, newRole),
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(['users'], (oldData: User[] | undefined) =>
+        oldData ? oldData.map(user => user.id === updatedUser.id ? updatedUser : user) : []
+      );
+      setChangeRoleUser(null);
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to change user role');
+      setTimeout(() => setError(''), 3000);
+    }
+  });
+
+  // Filter and sort users
+  const filteredUsers = React.useMemo(() => {
     let filtered = users.filter(user => 
       user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Sort the filtered results
-    filtered = [...filtered].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       let aValue: string | number = '';
       let bValue: string | number = '';
 
@@ -87,7 +104,6 @@ const UsersPage: React.FC = () => {
           bValue = b.email.toLowerCase();
           break;
         case 'role':
-          // Convert roles to numbers for consistent sorting
           aValue = a.role.toLowerCase() === 'moderator' ? 1 : 0;
           bValue = b.role.toLowerCase() === 'moderator' ? 1 : 0;
           break;
@@ -101,9 +117,7 @@ const UsersPage: React.FC = () => {
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-
-    setFilteredUsers(filtered);
-  }, [searchTerm, users, sortField, sortOrder]);
+  }, [users, searchTerm, sortField, sortOrder]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -139,19 +153,7 @@ const UsersPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteUserId) return;
-    
-    setDeletingUsers(prev => [...prev, deleteUserId]);
-    try {
-      await usersRepository.deleteUser(deleteUserId);
-      setUsers(users.filter(user => user.id !== deleteUserId));
-      setFilteredUsers(filteredUsers.filter(user => user.id !== deleteUserId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setDeletingUsers(prev => prev.filter(id => id !== deleteUserId));
-      setDeleteUserId(null);
-    }
+    deleteMutation.mutate(deleteUserId);
   };
 
   const handleChangeRoleClick = (user: User) => {
@@ -160,25 +162,8 @@ const UsersPage: React.FC = () => {
 
   const handleChangeRoleConfirm = async () => {
     if (!changeRoleUser) return;
-    
-    setIsChangingRole(true);
-    try {
-      const newRole = changeRoleUser.role.toLowerCase() === 'moderator' ? 'user' : 'moderator';
-      const updatedUser = await usersRepository.changeRole(changeRoleUser.id, newRole);
-      
-      setUsers(users.map(user => 
-        user.id === updatedUser.id ? updatedUser : user
-      ));
-      setFilteredUsers(filteredUsers.map(user => 
-        user.id === updatedUser.id ? updatedUser : user
-      ));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to change user role');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setIsChangingRole(false);
-      setChangeRoleUser(null);
-    }
+    const newRole = changeRoleUser.role.toLowerCase() === 'moderator' ? 'user' : 'moderator';
+    changeRoleMutation.mutate({ userId: changeRoleUser.id, newRole });
   };
 
   if (isLoading) {
@@ -333,7 +318,7 @@ const UsersPage: React.FC = () => {
             onSort={handleSort}
             onDelete={handleDeleteClick}
             onChangeRole={handleChangeRoleClick}
-            deletingUsers={deletingUsers}
+            deletingUsers={deleteMutation.isPending ? [deleteUserId!] : []}
           />
 
           {filteredUsers.length === 0 && (
@@ -354,7 +339,7 @@ const UsersPage: React.FC = () => {
         isOpen={deleteUserId !== null}
         title="Delete User"
         message="Are you sure you want to delete this user?"
-        isDeleting={deletingUsers.includes(deleteUserId || -1)}
+        isDeleting={deleteMutation.isPending}
         onClose={() => setDeleteUserId(null)}
         onConfirm={handleDeleteConfirm}
       />
@@ -362,12 +347,12 @@ const UsersPage: React.FC = () => {
       <ChangeRoleModal 
         isOpen={changeRoleUser !== null}
         user={changeRoleUser}
-        isChanging={isChangingRole}
+        isChanging={changeRoleMutation.isPending}
         onClose={() => setChangeRoleUser(null)}
         onConfirm={handleChangeRoleConfirm}
       />
     </div>
   );
-};
+}
 
 export default UsersPage; 
