@@ -1,3 +1,5 @@
+import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
+
 export interface User {
   id: number;
   email: string;
@@ -7,7 +9,7 @@ export interface User {
 }
 
 export interface IUsersRepository {
-  getAllUsers(): Promise<User[]>;
+  getAllUsers(search?: string, page?: number, per_page?: number): Promise<PaginatedResponse<User>>;
   deleteUser(userId: number): Promise<{ message: string }>;
   changeRole(userId: number, newRole: string): Promise<User>;
 } 

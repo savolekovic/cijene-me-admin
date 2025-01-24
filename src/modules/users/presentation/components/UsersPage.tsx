@@ -22,6 +22,8 @@ const UsersPage: React.FC = () => {
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
   const [changeRoleUser, setChangeRoleUser] = useState<User | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -29,14 +31,14 @@ const UsersPage: React.FC = () => {
 
   // Query for fetching users
   const { 
-    data: users = [], 
+    data: usersResponse,
     isLoading 
   } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', searchQuery, currentPage, pageSize],
     queryFn: async () => {
       try {
-        const data = await usersRepository.getAllUsers();
-        if (!Array.isArray(data)) {
+        const data = await usersRepository.getAllUsers(searchQuery, currentPage, pageSize);
+        if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
         return data;
@@ -50,13 +52,26 @@ const UsersPage: React.FC = () => {
     }
   });
 
+  const users = usersResponse?.data || [];
+  const totalCount = usersResponse?.total_count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Reset to first page when search query or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, pageSize]);
+
   // Mutation for deleting users
   const deleteMutation = useMutation<{ message: string }, Error, number>({
     mutationFn: (userId: number) => usersRepository.deleteUser(userId),
     onSuccess: (_, userId) => {
-      queryClient.setQueryData(['users'], (oldData: User[] | undefined) => 
-        oldData ? oldData.filter(user => user.id !== userId) : []
-      );
+      queryClient.setQueryData(['users', searchQuery, currentPage, pageSize], (oldData: any) => {
+        if (!oldData) return { total_count: 0, data: [] };
+        return {
+          total_count: oldData.total_count - 1,
+          data: oldData.data.filter((user: User) => user.id !== userId)
+        };
+      });
       setDeleteUserId(null);
     },
     onError: (err) => {
@@ -70,9 +85,13 @@ const UsersPage: React.FC = () => {
     mutationFn: ({ userId, newRole }) => 
       usersRepository.changeRole(userId, newRole),
     onSuccess: (updatedUser) => {
-      queryClient.setQueryData(['users'], (oldData: User[] | undefined) =>
-        oldData ? oldData.map(user => user.id === updatedUser.id ? updatedUser : user) : []
-      );
+      queryClient.setQueryData(['users', searchQuery, currentPage, pageSize], (oldData: any) => {
+        if (!oldData) return { total_count: oldData.total_count, data: [updatedUser] };
+        return {
+          total_count: oldData.total_count,
+          data: oldData.data.map((user: User) => user.id === updatedUser.id ? updatedUser : user)
+        };
+      });
       setChangeRoleUser(null);
     },
     onError: (err) => {
@@ -295,9 +314,19 @@ const UsersPage: React.FC = () => {
               </div>
             </div>
             <div className="col-12 col-sm-4 col-md-6">
-              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
+              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100 gap-2">
+                <select 
+                  className="form-select" 
+                  style={{ width: 'auto' }}
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                >
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                </select>
                 <span className="badge bg-secondary">
-                  Total Users: {filteredUsers.length}
+                  Total Users: {totalCount}
                 </span>
               </div>
             </div>
@@ -311,7 +340,7 @@ const UsersPage: React.FC = () => {
         </div>
         <div className="card-body p-0">
           <UsersTable 
-            users={filteredUsers}
+            users={users}
             sortField={sortField}
             sortOrder={sortOrder}
             onSort={handleSort}
@@ -320,7 +349,7 @@ const UsersPage: React.FC = () => {
             deletingUsers={deleteMutation.isPending ? [deleteUserId!] : []}
           />
 
-          {filteredUsers.length === 0 && !error && (
+          {users.length === 0 && !error && (
             <div className="text-center py-5">
               <div className="text-muted mb-2">
                 <FaInbox size={48} />
@@ -331,6 +360,27 @@ const UsersPage: React.FC = () => {
               <p className="text-muted small mb-0">The user list is empty</p>
             </div>
           )}
+        </div>
+        <div className="card-footer bg-white border-0 py-3">
+          <div className="d-flex justify-content-center align-items-center gap-2">
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="mx-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 

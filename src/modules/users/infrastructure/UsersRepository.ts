@@ -1,14 +1,22 @@
 import { api } from '../../../services/api';
 import { IUsersRepository, User } from '../domain/interfaces/IUsersRepository';
 import axios from 'axios';
+import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
 
 export class UsersRepository implements IUsersRepository {
-  async getAllUsers(): Promise<User[]> {
+  async getAllUsers(search?: string, page: number = 1, per_page: number = 10): Promise<PaginatedResponse<User>> {
     try {
-      const response = await api.get('/users/');
-      console.log('Success Response:', {
-        status: response.status,
-        data: response.data
+      const response = await api.get('/users/', {
+        params: {
+          search: search || '',
+          per_page,
+          page
+        },
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
       return response.data;
     } catch (error) {
