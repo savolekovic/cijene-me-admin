@@ -10,7 +10,7 @@ import { ProductFormModal } from './modals/ProductFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
-import { Category } from '../../../categories/domain/interfaces/ICategoriesRepository';
+import { CategoryDropdownItem } from '../../../categories/domain/interfaces/ICategoriesRepository';
 
 const productsRepository = new ProductsRepository();
 const categoriesRepository = new CategoriesRepository();
@@ -72,38 +72,53 @@ const ProductsPage: React.FC = () => {
     setCurrentPage(1);
   }, [searchQuery, pageSize]);
 
-  // Query for fetching categories
-  const {
-    data: categories = [],
-    isLoading: isLoadingCategories
+  // Query for fetching categories for dropdowns
+  const { 
+    data: categories = [], 
+    isLoading: isLoadingCategories 
   } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => categoriesRepository.getAllCategories(),
-    enabled: showAddModal || !!editingProduct
+    queryKey: ['categories', 'dropdown'],
+    queryFn: async () => {
+      try {
+        return await categoriesRepository.getCategoriesForDropdown();
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('Unauthorized')) {
+          logout();
+          navigate('/');
+        }
+        throw err;
+      }
+    },
+    enabled: showAddModal || editingProduct !== null,
+    staleTime: 0 // Fetch fresh data every time
   });
 
   // Mutation for creating products
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      return productsRepository.createProduct(
-        newProductName,
-        newProductBarcode,
-        newProductImage!,
-        newProductCategoryId
+  const createMutation = useMutation<Product, Error, FormData>({
+    mutationFn: async (formData) => {
+      const response = await productsRepository.createProduct(
+        formData.get('name') as string,
+        formData.get('barcode') as string,
+        formData.get('image') as File,
+        Number(formData.get('category_id'))
       );
+      return response;
     },
     onSuccess: (response) => {
-      const category = categories.find((cat: Category) => cat.id === newProductCategoryId);
+      const categoryId = Number(newProductCategoryId);
+      const category = categories.find((cat) => cat.id === categoryId);
       const productWithCategory: Product = {
         id: response.id,
         name: response.name,
         barcode: response.barcode,
         image_url: response.image_url,
         created_at: response.created_at,
-        category: category || { id: newProductCategoryId, name: 'Unknown' }
+        category: {
+          id: category!.id,
+          name: category!.name
+        }
       };
-      
-      queryClient.setQueryData<PaginatedResponse<Product>>(['products', searchQuery, currentPage, pageSize], (oldData) => {
+      queryClient.setQueryData(['products', searchQuery, currentPage, pageSize], (oldData: any) => {
         if (!oldData) return { total_count: 1, data: [productWithCategory] };
         return {
           total_count: oldData.total_count + 1,
@@ -120,33 +135,36 @@ const ProductsPage: React.FC = () => {
   });
 
   // Mutation for updating products
-  const updateMutation = useMutation({
-    mutationFn: async () => {
-      if (!editingProduct) throw new Error('No product selected for editing');
-      return productsRepository.updateProduct(
-        editingProduct.id,
-        editName,
-        editBarcode,
-        editImage,
-        editCategoryId
+  const updateMutation = useMutation<Product, Error, FormData>({
+    mutationFn: async (formData) => {
+      const response = await productsRepository.updateProduct(
+        editingProduct!.id,
+        formData.get('name') as string,
+        formData.get('barcode') as string,
+        formData.get('image') as File,
+        Number(formData.get('category_id'))
       );
+      return response;
     },
     onSuccess: (response) => {
-      const category = categories.find((cat: Category) => cat.id === editCategoryId);
+      const categoryId = Number(editCategoryId);
+      const category = categories.find((cat) => cat.id === categoryId);
       const updatedProduct: Product = {
         id: response.id,
         name: response.name,
         barcode: response.barcode,
-        image_url: response.image_url || editingProduct!.image_url,
+        image_url: response.image_url,
         created_at: response.created_at,
-        category: category || { id: editCategoryId, name: 'Unknown' }
+        category: {
+          id: category!.id,
+          name: category!.name
+        }
       };
-
-      queryClient.setQueryData<PaginatedResponse<Product>>(['products', searchQuery, currentPage, pageSize], (oldData) => {
-        if (!oldData) return { total_count: 1, data: [updatedProduct] };
+      queryClient.setQueryData(['products', searchQuery, currentPage, pageSize], (oldData: any) => {
+        if (!oldData) return { total_count: oldData.total_count, data: [updatedProduct] };
         return {
           total_count: oldData.total_count,
-          data: oldData.data.map(product =>
+          data: oldData.data.map((product: Product) => 
             product.id === updatedProduct.id ? updatedProduct : product
           )
         };
@@ -201,20 +219,27 @@ const ProductsPage: React.FC = () => {
   const resetAddForm = () => {
     setNewProductName('');
     setNewProductBarcode('');
-    setNewProductImage(null);
     setNewProductCategoryId(0);
+    setNewProductImage(null);
   };
 
   const resetEditForm = () => {
     setEditName('');
     setEditBarcode('');
-    setEditImage(null);
     setEditCategoryId(0);
+    setEditImage(null);
   };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate();
+    const formData = new FormData();
+    formData.append('name', newProductName);
+    formData.append('barcode', newProductBarcode);
+    formData.append('category_id', newProductCategoryId.toString());
+    if (newProductImage) {
+      formData.append('image', newProductImage);
+    }
+    createMutation.mutate(formData);
   };
 
   const handleEditClick = (product: Product) => {
@@ -227,7 +252,14 @@ const ProductsPage: React.FC = () => {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate();
+    const formData = new FormData();
+    formData.append('name', editName);
+    formData.append('barcode', editBarcode);
+    formData.append('category_id', editCategoryId.toString());
+    if (editImage) {
+      formData.append('image', editImage);
+    }
+    updateMutation.mutate(formData);
   };
 
   const handleDeleteConfirm = async () => {
@@ -452,17 +484,17 @@ const ProductsPage: React.FC = () => {
           resetAddForm();
         }}
         onSubmit={handleCreateProduct}
-        categories={categories}
+        categories={categories as CategoryDropdownItem[]}
         isProcessing={createMutation.isPending}
         isLoadingCategories={isLoadingCategories}
         name={newProductName}
         setName={setNewProductName}
         barcode={newProductBarcode}
         setBarcode={setNewProductBarcode}
-        image={newProductImage}
-        setImage={setNewProductImage}
         categoryId={newProductCategoryId}
         setCategoryId={setNewProductCategoryId}
+        image={newProductImage}
+        setImage={setNewProductImage}
       />
 
       <ProductFormModal
@@ -473,17 +505,17 @@ const ProductsPage: React.FC = () => {
           resetEditForm();
         }}
         onSubmit={handleEditSubmit}
-        categories={categories}
+        categories={categories as CategoryDropdownItem[]}
         isProcessing={updateMutation.isPending}
         isLoadingCategories={isLoadingCategories}
         name={editName}
         setName={setEditName}
         barcode={editBarcode}
         setBarcode={setEditBarcode}
-        image={editImage}
-        setImage={setEditImage}
         categoryId={editCategoryId}
         setCategoryId={setEditCategoryId}
+        image={editImage}
+        setImage={setEditImage}
       />
 
       <DeleteConfirmationModal 

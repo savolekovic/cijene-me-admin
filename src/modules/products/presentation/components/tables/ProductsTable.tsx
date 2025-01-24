@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { FaSort, FaSortDown, FaSortUp, FaBox } from 'react-icons/fa';
+import React from 'react';
 import { Product } from '../../../domain/interfaces/IProductsRepository';
+import { ProductImage } from '../../../../shared/presentation/components/ProductImage';
 
 export type SortField = 'id' | 'name' | 'barcode' | 'category_name' | 'created_at';
 type SortOrder = 'asc' | 'desc';
@@ -16,101 +16,9 @@ interface ProductsTableProps {
 
 export const ProductsTable: React.FC<ProductsTableProps> = ({
   products,
-  sortField,
-  sortOrder,
-  onSort,
   onEdit,
   onDelete
 }) => {
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === 'asc' ?
-      <FaSortUp className="ms-1 text-primary" /> :
-      <FaSortDown className="ms-1 text-primary" />;
-  };
-
-  const getFullImageUrl = (imageUrl: string | null) => {
-    if (!imageUrl) return null;
-    // If the URL is already absolute (starts with http/https), use it as is
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return imageUrl;
-    }
-    // Otherwise, prepend the API URL for relative paths
-    if (!process.env.REACT_APP_API_URL) return null;
-    return `${process.env.REACT_APP_API_URL}${imageUrl}`;
-  };
-
-  const Placeholder: React.FC<{ size: 'small' | 'large' }> = ({ size }) => {
-    const dimensions = size === 'small' ? 
-      { width: '50px', height: '50px', iconSize: 24 } : 
-      { width: '60px', height: '60px', iconSize: 28 };
-
-    return (
-      <div 
-        style={{ 
-          width: dimensions.width, 
-          height: dimensions.height,
-          backgroundColor: '#f8f9fa',
-          borderRadius: '4px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto'
-        }}
-      >
-        <FaBox size={dimensions.iconSize} className="text-muted" />
-      </div>
-    );
-  };
-
-  const ProductImage: React.FC<{ 
-    imageUrl: string | null, 
-    name: string, 
-    size?: 'small' | 'large' 
-  }> = ({ imageUrl, name, size = 'small' }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [hasError, setHasError] = useState(false);
-    const dimensions = size === 'small' ? 
-      { width: '50px', height: '50px' } : 
-      { width: '60px', height: '60px' };
-    
-    const fullUrl = getFullImageUrl(imageUrl);
-
-    if (hasError || !fullUrl) {
-      return <Placeholder size={size} />;
-    }
-
-    return (
-      <div style={{ 
-        width: dimensions.width, 
-        height: dimensions.height, 
-        position: 'relative',
-        margin: '0'
-      }}>
-        {isLoading && <Placeholder size={size} />}
-        <img 
-          src={fullUrl} 
-          alt={name}
-          style={{ 
-            width: dimensions.width, 
-            height: dimensions.height, 
-            objectFit: 'cover',
-            borderRadius: '4px',
-            position: isLoading ? 'absolute' : 'static',
-            top: 0,
-            left: 0,
-            opacity: isLoading ? 0 : 1,
-            transition: 'opacity 0.2s ease-in-out'
-          }}
-          onLoad={() => setIsLoading(false)}
-          onError={() => {
-            setIsLoading(false);
-            setHasError(true);
-          }}
-        />
-      </div>
-    );
-  };
 
   return (
     <>

@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { FaSpinner } from 'react-icons/fa';
-import { Category } from '../../../../categories/domain/interfaces/ICategoriesRepository';
+import { CategoryDropdownItem } from '../../../../categories/domain/interfaces/ICategoriesRepository';
 import { validateProductName, validateImageInput, validateEANBarcode } from '../../../../shared/utils/validation';
 
 interface ProductFormModalProps {
   isOpen: boolean;
   mode: 'add' | 'edit';
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => Promise<void>;
-  categories: Category[];
+  onSubmit: (e: React.FormEvent) => void;
+  categories: CategoryDropdownItem[];
   isProcessing: boolean;
   isLoadingCategories: boolean;
   name: string;
