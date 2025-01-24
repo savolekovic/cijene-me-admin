@@ -48,6 +48,13 @@ export const ProductImage: React.FC<ProductImageProps> = ({
       return;
     }
 
+    // Show placeholder immediately for invalid URLs
+    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://') && !imageUrl.startsWith('/')) {
+      setHasError(true);
+      setIsLoading(false);
+      return;
+    }
+
     const img = new Image();
     img.onload = () => {
       setHasError(false);
@@ -76,21 +83,23 @@ export const ProductImage: React.FC<ProductImageProps> = ({
       position: 'relative'
     }}>
       {isLoading && <Placeholder size={size} />}
-      <img 
-        src={imageUrl} 
-        alt={name}
-        style={{ 
-          width: dimensions.width, 
-          height: dimensions.height, 
-          objectFit: 'cover',
-          borderRadius: '4px',
-          position: isLoading ? 'absolute' : 'static',
-          top: 0,
-          left: 0,
-          opacity: isLoading ? 0 : 1,
-          transition: 'opacity 0.2s ease-in-out'
-        }}
-      />
+      {!hasError && (
+        <img 
+          src={imageUrl} 
+          alt={name}
+          style={{ 
+            width: dimensions.width, 
+            height: dimensions.height, 
+            objectFit: 'cover',
+            borderRadius: '4px',
+            position: isLoading ? 'absolute' : 'static',
+            top: 0,
+            left: 0,
+            opacity: isLoading ? 0 : 1,
+            transition: 'opacity 0.2s ease-in-out'
+          }}
+        />
+      )}
     </div>
   );
 }; 
