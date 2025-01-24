@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { StoreBrand } from '../../../domain/interfaces/IStoreBrandRepository';
+import { StoreBrandDropdownItem } from '../../../domain/interfaces/IStoreBrandRepository';
 import { validateStoreLocationAddress } from '../../../../shared/utils/validation';
 
 interface StoreLocationFormModalProps {
   isOpen: boolean;
   mode: 'add' | 'edit';
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => Promise<void>;
-  storeBrands: StoreBrand[];
+  onSubmit: (e: React.FormEvent) => void;
+  storeBrands: StoreBrandDropdownItem[];
   isProcessing: boolean;
   address: string;
   setAddress: (address: string) => void;

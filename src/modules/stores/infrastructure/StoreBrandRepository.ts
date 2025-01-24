@@ -1,11 +1,17 @@
 import { api } from '../../../services/api';
-import { IStoreBrandRepository, StoreBrand } from '../domain/interfaces/IStoreBrandRepository';
+import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
+import { IStoreBrandRepository, StoreBrand, StoreBrandDropdownItem } from '../domain/interfaces/IStoreBrandRepository';
 import axios from 'axios';
 
 export class StoreBrandRepository implements IStoreBrandRepository {
-  async getAllStoreBrands(): Promise<StoreBrand[]> {
+  async getAllStoreBrands(search?: string, page: number = 1, per_page: number = 10): Promise<PaginatedResponse<StoreBrand>> {
     try {
       const response = await api.get('/store-brands/', {
+        params: {
+          search: search || '',
+          page,
+          per_page
+        },
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -15,6 +21,21 @@ export class StoreBrandRepository implements IStoreBrandRepository {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Failed to fetch store brands');
+      }
+      throw new Error('Failed to fetch store brands');
+    }
+  }
+
+  async getStoreBrandsForDropdown(): Promise<StoreBrandDropdownItem[]> {
+    try {
+      const response = await api.get('/store-brands/simple');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access. Please login again.');
+        }
         throw new Error(error.response?.data?.message || 'Failed to fetch store brands');
       }
       throw new Error('Failed to fetch store brands');

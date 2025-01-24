@@ -1,11 +1,25 @@
 import { api } from '../../../services/api';
-import { IStoreLocationRepository, StoreLocation } from '../domain/interfaces/IStoreLocationRepository';
+import { IStoreLocationRepository, StoreLocation, StoreLocationDropdownItem, StoreLocationDropdownOptions } from '../domain/interfaces/IStoreLocationRepository';
+import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
 import axios from 'axios';
 
 export class StoreLocationRepository implements IStoreLocationRepository {
-  async getAllStoreLocations(): Promise<StoreLocation[]> {
+  async getAllStoreLocations(
+    search?: string, 
+    page: number = 1, 
+    per_page: number = 10,
+    sort_field?: string,
+    sort_order?: 'asc' | 'desc'
+  ): Promise<PaginatedResponse<StoreLocation>> {
     try {
       const response = await api.get('/store-locations/', {
+        params: {
+          search: search || '',
+          page,
+          per_page,
+          sort_field,
+          sort_order
+        },
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -78,6 +92,26 @@ export class StoreLocationRepository implements IStoreLocationRepository {
         throw new Error(error.response?.data?.message || 'Failed to delete store location');
       }
       throw new Error('Failed to delete store location');
+    }
+  }
+
+  async getStoreLocationsForDropdown(options?: StoreLocationDropdownOptions): Promise<StoreLocationDropdownItem[]> {
+    try {
+      const response = await api.get('/store-locations/simple', {
+        params: {
+          search: options?.search || '',
+          store_brand: options?.store_brand_id
+        }
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access. Please login again.');
+        }
+        throw new Error(error.response?.data?.message || 'Failed to fetch store locations');
+      }
+      throw new Error('Failed to fetch store locations');
     }
   }
 }

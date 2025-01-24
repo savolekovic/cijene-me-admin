@@ -8,6 +8,7 @@ import { StoreBrandRepository } from '../../infrastructure/StoreBrandRepository'
 import { StoreBrandFormModal } from './modals/StoreBrandFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { StoreBrandsTable } from './tables/StoreBrandsTable';
+import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
 
 const storeBrandRepository = new StoreBrandRepository();
 
@@ -32,16 +33,28 @@ const StoreBrandPage: React.FC = () => {
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const { logout } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // Reset to first page when search query or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, pageSize]);
+
   // Query for fetching store brands
-  const { data: storeBrands = [], isLoading } = useQuery({
-    queryKey: ['storeBrands'],
+  const { 
+    data: storeBrandsResponse,
+    isLoading 
+  } = useQuery<PaginatedResponse<StoreBrand>>({
+    queryKey: ['storeBrands', searchQuery, currentPage, pageSize],
     queryFn: async () => {
       try {
-        return await storeBrandRepository.getAllStoreBrands();
+        return await storeBrandRepository.getAllStoreBrands(searchQuery, currentPage, pageSize);
       } catch (err) {
         if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
           logout();
@@ -52,11 +65,15 @@ const StoreBrandPage: React.FC = () => {
     }
   });
 
+  const storeBrands = storeBrandsResponse?.data || [];
+  const totalCount = storeBrandsResponse?.total_count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   // Mutation for creating store brands
   const createMutation = useMutation({
     mutationFn: (name: string) => storeBrandRepository.createStoreBrand(name),
     onSuccess: (newStoreBrand) => {
-      queryClient.setQueryData(['storeBrands'], (old: StoreBrand[] = []) => [...old, newStoreBrand]);
+      queryClient.invalidateQueries({ queryKey: ['storeBrands'] });
       setShowAddModal(false);
       setNewStoreBrandName('');
       setError('');
@@ -72,9 +89,7 @@ const StoreBrandPage: React.FC = () => {
     mutationFn: ({ id, name }: { id: number; name: string }) => 
       storeBrandRepository.updateStoreBrand(id, name),
     onSuccess: (updatedBrand) => {
-      queryClient.setQueryData(['storeBrands'], (old: StoreBrand[] = []) =>
-        old.map(brand => brand.id === updatedBrand.id ? updatedBrand : brand)
-      );
+      queryClient.invalidateQueries({ queryKey: ['storeBrands'] });
       setEditingStoreBrand(null);
       setEditName('');
       setError('');
@@ -89,9 +104,7 @@ const StoreBrandPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => storeBrandRepository.deleteStoreBrand(id),
     onSuccess: (_, deletedId) => {
-      queryClient.setQueryData(['storeBrands'], (old: StoreBrand[] = []) =>
-        old.filter(brand => brand.id !== deletedId)
-      );
+      queryClient.invalidateQueries({ queryKey: ['storeBrands'] });
       setDeleteId(null);
       setError('');
     },
@@ -193,8 +206,8 @@ const StoreBrandPage: React.FC = () => {
           <div className="row g-3 mb-0">
             <div className="col-12 col-sm-8 col-md-6">
               <div className="d-flex gap-2">
-                <div className="input-group flex-grow-1">
-                <input
+                <div className="flex-grow-1 position-relative">
+                  <input
                     type="text"
                     className="form-control"
                     placeholder="Search store brands..."
@@ -207,12 +220,12 @@ const StoreBrandPage: React.FC = () => {
                     size={14}
                   />
                 </div>
-                <div className="position-relative">
-                  <button 
+                <div className="dropdown">
+                  <button
                     id="sort-button"
                     className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
-                    type="button"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    type="button"
                     style={{ whiteSpace: 'nowrap' }}
                   >
                     <FaSort size={14} />
@@ -279,9 +292,18 @@ const StoreBrandPage: React.FC = () => {
               </div>
             </div>
             <div className="col-12 col-sm-4 col-md-6">
-              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
+              <div className="d-flex justify-content-sm-end align-items-center gap-2">
+                <select
+                  className="form-select w-auto"
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                >
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                </select>
                 <span className="badge bg-secondary">
-                  Total Store Brands: {storeBrands.length}
+                  Total Store Brands: {totalCount}
                 </span>
               </div>
             </div>
@@ -295,7 +317,7 @@ const StoreBrandPage: React.FC = () => {
         </div>
         <div className="card-body p-0">
           <StoreBrandsTable
-            storeBrands={getSortedBrands()}
+            storeBrands={storeBrands}
             sortField={sortField}
             sortOrder={sortOrder}
             onSort={(field) => {
@@ -320,6 +342,26 @@ const StoreBrandPage: React.FC = () => {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+        <span className="text-muted small">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
       </div>
 
       <StoreBrandFormModal
