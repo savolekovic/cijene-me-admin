@@ -1,11 +1,26 @@
 import { api } from '../../../services/api';
 import { IProductEntriesRepository, ProductEntry } from '../domain/interfaces/IProductEntriesRepository';
+import { ProductEntrySortField, SortOrder } from '../domain/types/sorting';
 import axios from 'axios';
+import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
 
 export class ProductEntriesRepository implements IProductEntriesRepository {
-  async getAllProductEntries(): Promise<ProductEntry[]> {
+  async getAllProductEntries(
+    search?: string, 
+    page: number = 1, 
+    per_page: number = 10,
+    sort_field?: ProductEntrySortField,
+    sort_order?: SortOrder
+  ): Promise<PaginatedResponse<ProductEntry>> {
     try {
       const response = await api.get('/product-entries/', {
+        params: {
+          search: search || '',
+          per_page,
+          page,
+          sort_field,
+          sort_order
+        },
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',

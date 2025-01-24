@@ -1,5 +1,6 @@
 import React from 'react';
-import { StoreLocation } from '../../../../stores/domain/interfaces/IStoreLocationRepository';
+import { StoreLocationDropdownItem } from '../../../../stores/domain/interfaces/IStoreLocationRepository';
+import { StoreBrandDropdownItem } from '../../../../stores/domain/interfaces/IStoreBrandRepository';
 import { ProductDropdownItem } from '../../../domain/interfaces/IProductsRepository';
 
 interface ProductEntryFormModalProps {
@@ -7,11 +8,14 @@ interface ProductEntryFormModalProps {
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   products: ProductDropdownItem[];
-  storeLocations: StoreLocation[];
+  storeBrands: StoreBrandDropdownItem[];
+  storeLocations: StoreLocationDropdownItem[];
   isLoadingDropdownData: boolean;
   isProcessing: boolean;
   productId: number;
   setProductId: (id: number) => void;
+  storeBrandId: number;
+  setStoreBrandId: (id: number) => void;
   locationId: number;
   setLocationId: (id: number) => void;
   price: string;
@@ -24,11 +28,14 @@ export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
   onClose,
   onSubmit,
   products,
+  storeBrands,
   storeLocations,
   isLoadingDropdownData,
   isProcessing,
   productId,
   setProductId,
+  storeBrandId,
+  setStoreBrandId,
   locationId,
   setLocationId,
   price,
@@ -40,6 +47,12 @@ export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
   const title = mode === 'add' ? 'Add Product Entry' : 'Edit Product Entry';
   const submitButtonText = mode === 'add' ? 'Create Product Entry' : 'Save Changes';
   const processingText = mode === 'add' ? 'Creating...' : 'Saving...';
+
+  const handleStoreBrandChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStoreBrandId = Number(e.target.value);
+    setStoreBrandId(newStoreBrandId);
+    setLocationId(0); // Reset location when store brand changes
+  };
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -88,6 +101,26 @@ export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
                 </select>
               </div>
               <div className="mb-3">
+                <label htmlFor="storeBrand" className="form-label">Store Brand</label>
+                <select
+                  className="form-select"
+                  id="storeBrand"
+                  value={storeBrandId}
+                  onChange={handleStoreBrandChange}
+                  required
+                  disabled={isProcessing || isLoadingDropdownData}
+                >
+                  <option value="">
+                    {isLoadingDropdownData ? 'Loading store brands...' : 'Select a store brand'}
+                  </option>
+                  {!isLoadingDropdownData && storeBrands.map(brand => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-3">
                 <label htmlFor="storeLocation" className="form-label">Store Location</label>
                 <select
                   className="form-select"
@@ -95,14 +128,18 @@ export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
                   value={locationId}
                   onChange={(e) => setLocationId(Number(e.target.value))}
                   required
-                  disabled={isProcessing || isLoadingDropdownData}
+                  disabled={isProcessing || isLoadingDropdownData || !storeBrandId}
                 >
                   <option value="">
-                    {isLoadingDropdownData ? 'Loading locations...' : 'Select a store location'}
+                    {!storeBrandId 
+                      ? 'Select a store brand first'
+                      : isLoadingDropdownData 
+                      ? 'Loading locations...' 
+                      : 'Select a store location'}
                   </option>
-                  {!isLoadingDropdownData && storeLocations.map(location => (
+                  {!isLoadingDropdownData && storeBrandId > 0 && storeLocations.map(location => (
                     <option key={location.id} value={location.id}>
-                      {location.address} ({location.store_brand.name})
+                      {location.address}
                     </option>
                   ))}
                 </select>
@@ -139,6 +176,7 @@ export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
                   isProcessing || 
                   isLoadingDropdownData ||
                   !productId || 
+                  !storeBrandId ||
                   !locationId || 
                   !price.trim()
                 }

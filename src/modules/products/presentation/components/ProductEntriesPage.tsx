@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaInbox, FaSearch, FaSort, FaSortUp, FaSortDown, FaSpinner } from 'react-icons/fa';
+import { FaPlus, FaInbox, FaSearch, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
@@ -7,14 +7,17 @@ import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository'
 import { ProductEntriesRepository } from '../../infrastructure/ProductEntriesRepository';
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
 import { StoreLocationRepository } from '../../../stores/infrastructure/StoreLocationRepository';
-import { SortField } from '../utils/sorting';
+import { ProductEntrySortField, SortOrder } from '../../domain/types/sorting';
 import { ProductEntriesTable } from './tables/ProductEntriesTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { ProductEntryFormModal } from './modals/ProductEntryFormModal';
+import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
+import { StoreBrandRepository } from '../../../stores/infrastructure/StoreBrandRepository';
 
 const productEntriesRepository = new ProductEntriesRepository();
 const productsRepository = new ProductsRepository();
 const storeLocationRepository = new StoreLocationRepository();
+const storeBrandRepository = new StoreBrandRepository();
 
 const ProductEntriesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,36 +27,49 @@ const ProductEntriesPage: React.FC = () => {
   // State
   const [error, setError] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [newEntryProductId, setNewEntryProductId] = useState(0);
+  const [newEntryStoreBrandId, setNewEntryStoreBrandId] = useState(0);
   const [newEntryStoreLocationId, setNewEntryStoreLocationId] = useState(0);
   const [newEntryPrice, setNewEntryPrice] = useState('');
   const [editingEntry, setEditingEntry] = useState<ProductEntry | null>(null);
   const [editProductId, setEditProductId] = useState(0);
+  const [editStoreBrandId, setEditStoreBrandId] = useState(0);
   const [editStoreLocationId, setEditStoreLocationId] = useState(0);
   const [editPrice, setEditPrice] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Sorting
-  const [sortField, setSortField] = useState<SortField>('product_name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<ProductEntrySortField>('product_name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  // Query for fetching entries
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Reset to first page when search query or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, pageSize]);
+
+  // Query for fetching entries with sorting and filtering
   const { 
-    data: productEntries = [], 
-    isLoading: queryLoading 
+    data: productEntriesResponse = { data: [], total_count: 0 },
+    isLoading: isEntriesLoading,
+    isFetching: isEntriesFetching
   } = useQuery({
-    queryKey: ['productEntries'],
+    queryKey: ['productEntries', searchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await productEntriesRepository.getAllProductEntries();
-        if (!Array.isArray(data)) {
-          throw new Error('Invalid data format received from server');
-        }
-        return data;
+        return await productEntriesRepository.getAllProductEntries(
+          searchQuery,
+          currentPage,
+          pageSize,
+          sortField,
+          sortOrder
+        );
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
@@ -64,21 +80,65 @@ const ProductEntriesPage: React.FC = () => {
     }
   });
 
-  // Query for dropdown data
+  // Query for products dropdown (only when needed)
   const {
-    data: dropdownData = { products: [], storeLocations: [] },
-    isLoading: isLoadingDropdownData
+    data: products = [],
+    isLoading: isProductsLoading
   } = useQuery({
-    queryKey: ['dropdownData'],
-    queryFn: async () => {
-      const [products, storeLocations] = await Promise.all([
-        productsRepository.getProductsForDropdown(),
-        storeLocationRepository.getAllStoreLocations()
-      ]);
-      return { products, storeLocations };
-    },
-    enabled: showAddModal || !!editingEntry
+    queryKey: ['products', 'dropdown'],
+    queryFn: () => productsRepository.getProductsForDropdown(),
+    enabled: showAddModal || !!editingEntry,
+    staleTime: 0 // Fetch fresh data every time
   });
+
+  // Query for store brands dropdown
+  const {
+    data: storeBrands = [],
+    isLoading: isStoreBrandsLoading
+  } = useQuery({
+    queryKey: ['store-brands', 'dropdown'],
+    queryFn: () => storeBrandRepository.getStoreBrandsForDropdown(),
+    enabled: showAddModal || !!editingEntry,
+    staleTime: 0 // Fetch fresh data every time
+  });
+
+  // Query for store locations dropdown based on selected store brand
+  const { 
+    data: storeLocations = [], 
+    isLoading: isLocationsLoading
+  } = useQuery({
+    queryKey: ['store-locations', 'dropdown', editingEntry ? editStoreBrandId : newEntryStoreBrandId],
+    queryFn: async () => {
+      try {
+        const selectedBrandId = editingEntry ? editStoreBrandId : newEntryStoreBrandId;
+        if (!selectedBrandId) return [];
+        
+        return await storeLocationRepository.getStoreLocationsForDropdown({
+          store_brand_id: selectedBrandId
+        });
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('Unauthorized')) {
+          logout();
+          navigate('/');
+        }
+        throw err;
+      }
+    },
+    enabled: (showAddModal || !!editingEntry) && 
+      (editingEntry ? editStoreBrandId > 0 : newEntryStoreBrandId > 0),
+    staleTime: 0 // Fetch fresh data every time
+  });
+
+  useEffect(() => {
+    if (editingEntry) {
+      setEditProductId(editingEntry.product.id);
+      setEditStoreBrandId(editingEntry.store_location.store_brand.id);
+      setEditStoreLocationId(editingEntry.store_location.id);
+      setEditPrice(editingEntry.price.toString());
+    }
+  }, [editingEntry]);
+
+  const isLoadingDropdownData = isProductsLoading || isStoreBrandsLoading || isLocationsLoading;
 
   // Mutation for creating entries
   const createMutation = useMutation({
@@ -90,14 +150,28 @@ const ProductEntriesPage: React.FC = () => {
       );
     },
     onSuccess: (newEntry) => {
-      queryClient.setQueryData(['productEntries'], (oldData: ProductEntry[] | undefined) => 
-        oldData ? [...oldData, newEntry] : [newEntry]
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['productEntries'] });
+      
+      // Optimistically update the cache
+      queryClient.setQueryData<PaginatedResponse<ProductEntry>>(
+        ['productEntries', searchQuery, currentPage, pageSize, sortField, sortOrder],
+        (oldData) => {
+          if (!oldData) return { total_count: 1, data: [newEntry] };
+          return {
+            ...oldData,
+            total_count: oldData.total_count + 1,
+            data: [...oldData.data, newEntry]
+          };
+        }
       );
+      
       resetAddForm();
       setShowAddModal(false);
+      setError('');
     },
-    onError: (err) => {
-      setError(err instanceof Error ? err.message : 'Failed to create product entry');
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to create product entry');
       setTimeout(() => setError(''), 3000);
     }
   });
@@ -114,16 +188,29 @@ const ProductEntriesPage: React.FC = () => {
       );
     },
     onSuccess: (updatedEntry) => {
-      queryClient.setQueryData(['productEntries'], (oldData: ProductEntry[] | undefined) =>
-        oldData ? oldData.map(entry =>
-          entry.id === updatedEntry.id ? updatedEntry : entry
-        ) : []
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['productEntries'] });
+      
+      // Optimistically update the cache
+      queryClient.setQueryData<PaginatedResponse<ProductEntry>>(
+        ['productEntries', searchQuery, currentPage, pageSize, sortField, sortOrder],
+        (oldData) => {
+          if (!oldData) return { total_count: 1, data: [updatedEntry] };
+          return {
+            ...oldData,
+            data: oldData.data.map((entry) => 
+              entry.id === updatedEntry.id ? updatedEntry : entry
+            )
+          };
+        }
       );
+      
       resetEditForm();
       setEditingEntry(null);
+      setError('');
     },
-    onError: (err) => {
-      setError(err instanceof Error ? err.message : 'Failed to update product entry');
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to update product entry');
       setTimeout(() => setError(''), 3000);
     }
   });
@@ -131,62 +218,53 @@ const ProductEntriesPage: React.FC = () => {
   // Mutation for deleting entries
   const deleteMutation = useMutation({
     mutationFn: (entryId: number) => productEntriesRepository.deleteProductEntry(entryId),
-    onSuccess: (_, entryId) => {
-      queryClient.setQueryData(['productEntries'], (oldData: ProductEntry[] | undefined) => 
-        oldData ? oldData.filter(entry => entry.id !== entryId) : []
+    onSuccess: (_, deletedId) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['productEntries'] });
+      
+      // Optimistically update the cache
+      queryClient.setQueryData<PaginatedResponse<ProductEntry>>(
+        ['productEntries', searchQuery, currentPage, pageSize, sortField, sortOrder],
+        (oldData) => {
+          if (!oldData) return { total_count: 0, data: [] };
+          return {
+            ...oldData,
+            total_count: oldData.total_count - 1,
+            data: oldData.data.filter((entry) => entry.id !== deletedId)
+          };
+        }
       );
+      
       setDeleteId(null);
+      setError('');
     },
-    onError: (err) => {
-      setError(err instanceof Error ? err.message : 'Failed to delete product entry');
+    onError: (err: Error) => {
+      setError(err.message || 'Failed to delete product entry');
       setTimeout(() => setError(''), 3000);
     }
   });
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const dropdown = document.getElementById('sortDropdown');
-      const button = document.getElementById('sortButton');
-      if (
-        dropdown &&
-        button &&
-        !dropdown.contains(event.target as Node) &&
-        !button.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const resetAddForm = () => {
     setNewEntryProductId(0);
+    setNewEntryStoreBrandId(0);
     setNewEntryStoreLocationId(0);
     setNewEntryPrice('');
   };
 
   const resetEditForm = () => {
     setEditProductId(0);
+    setEditStoreBrandId(0);
     setEditStoreLocationId(0);
     setEditPrice('');
   };
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
+  const handleSort = (field: ProductEntrySortField) => {
+    if (field === sortField) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortOrder('asc');
     }
-  };
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === 'asc' ?
-      <FaSortUp className="ms-1 text-primary" /> :
-      <FaSortDown className="ms-1 text-primary" />;
   };
 
   const handleCreateEntry = async (e: React.FormEvent) => {
@@ -211,38 +289,7 @@ const ProductEntriesPage: React.FC = () => {
     deleteMutation.mutate(deleteId);
   };
 
-  const filteredEntries = productEntries.filter(entry =>
-    entry.product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    entry.store_location.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    entry.store_location.store_brand.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const sortedAndFilteredEntries = [...filteredEntries].sort((a, b) => {
-    switch (sortField) {
-      case 'product_name':
-        return sortOrder === 'asc' ? 
-          a.product.name.localeCompare(b.product.name) :
-          b.product.name.localeCompare(a.product.name);
-      case 'store_brand_name':
-        return sortOrder === 'asc' ?
-          a.store_location.store_brand.name.localeCompare(b.store_location.store_brand.name) :
-          b.store_location.store_brand.name.localeCompare(a.store_location.store_brand.name);
-      case 'store_address':
-        return sortOrder === 'asc' ?
-          a.store_location.address.localeCompare(b.store_location.address) :
-          b.store_location.address.localeCompare(a.store_location.address);
-      case 'price':
-        return sortOrder === 'asc' ? a.price - b.price : b.price - a.price;
-      case 'created_at':
-        return sortOrder === 'asc' ?
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime() :
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      default:
-        return 0;
-    }
-  });
-
-  if (queryLoading) {
+  if (isEntriesLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
         <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
@@ -282,150 +329,21 @@ const ProductEntriesPage: React.FC = () => {
                     size={14}
                   />
                 </div>
-                <div className="position-relative">
-                  <button 
-                    id="sort-button"
-                    className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
-                    type="button"
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    style={{ whiteSpace: 'nowrap' }}
-                  >
-                    <FaSort size={14} />
-                    <span className="d-none d-sm-inline">
-                      {sortField === 'product_name' 
-                        ? `Product (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : sortField === 'store_brand_name'
-                        ? `Brand (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : sortField === 'store_address'
-                        ? `Location (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : sortField === 'price'
-                        ? `Price (${sortOrder === 'asc' ? 'Low-High' : 'High-Low'})`
-                        : `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`}
-                    </span>
-                  </button>
-                  {isDropdownOpen && (
-                    <div 
-                      id="sort-dropdown"
-                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
-                      style={{ 
-                        zIndex: 1000, 
-                        minWidth: '160px',
-                        border: '1px solid rgba(0,0,0,.15)'
-                      }}
-                    >
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('product_name'); 
-                          setSortOrder('asc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Product (A-Z)
-                      </button>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('product_name'); 
-                          setSortOrder('desc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Product (Z-A)
-                      </button>
-                      <div className="dropdown-divider my-1"></div>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('store_brand_name'); 
-                          setSortOrder('asc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Brand (A-Z)
-                      </button>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('store_brand_name'); 
-                          setSortOrder('desc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Brand (Z-A)
-                      </button>
-                      <div className="dropdown-divider my-1"></div>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('store_address'); 
-                          setSortOrder('asc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Location (A-Z)
-                      </button>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('store_address'); 
-                          setSortOrder('desc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Location (Z-A)
-                      </button>
-                      <div className="dropdown-divider my-1"></div>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('price'); 
-                          setSortOrder('asc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Price (Low-High)
-                      </button>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('price'); 
-                          setSortOrder('desc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Price (High-Low)
-                      </button>
-                      <div className="dropdown-divider my-1"></div>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('created_at'); 
-                          setSortOrder('desc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Date (Newest)
-                      </button>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => { 
-                          setSortField('created_at'); 
-                          setSortOrder('asc');
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Date (Oldest)
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
             <div className="col-12 col-sm-4 col-md-6">
-              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100">
+              <div className="d-flex justify-content-sm-end align-items-center gap-2">
+                <select
+                  className="form-select w-auto"
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                >
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                </select>
                 <span className="badge bg-secondary">
-                  Total Entries: {filteredEntries.length}
+                  Total Entries: {productEntriesResponse.total_count}
                 </span>
               </div>
             </div>
@@ -439,15 +357,14 @@ const ProductEntriesPage: React.FC = () => {
         </div>
         <div className="card-body p-0">
           <ProductEntriesTable
-            entries={sortedAndFilteredEntries}
+            entries={productEntriesResponse.data}
             sortField={sortField}
             sortOrder={sortOrder}
             onSort={handleSort}
             onEdit={handleEditClick}
             onDelete={setDeleteId}
           />
-
-          {filteredEntries.length === 0 && !error && (
+          {productEntriesResponse.data.length === 0 && !error && (
             <div className="text-center py-5">
               <div className="text-muted mb-2">
                 <FaInbox size={48} />
@@ -463,16 +380,39 @@ const ProductEntriesPage: React.FC = () => {
         </div>
       </div>
 
+      <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1 || isEntriesFetching}
+        >
+          Previous
+        </button>
+        <span className="text-muted small">
+          Page {currentPage} of {Math.ceil(productEntriesResponse.total_count / pageSize)}
+        </span>
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => setCurrentPage(prev => Math.min(Math.ceil(productEntriesResponse.total_count / pageSize), prev + 1))}
+          disabled={currentPage === Math.ceil(productEntriesResponse.total_count / pageSize) || isEntriesFetching}
+        >
+          Next
+        </button>
+      </div>
+
       <ProductEntryFormModal
         isOpen={showAddModal || !!editingEntry}
         onClose={() => editingEntry ? setEditingEntry(null) : setShowAddModal(false)}
         onSubmit={editingEntry ? handleEditSubmit : handleCreateEntry}
-        products={dropdownData.products}
-        storeLocations={dropdownData.storeLocations}
+        products={products}
+        storeBrands={storeBrands}
+        storeLocations={storeLocations}
         isLoadingDropdownData={isLoadingDropdownData}
         isProcessing={editingEntry ? updateMutation.isPending : createMutation.isPending}
         productId={editingEntry ? editProductId : newEntryProductId}
         setProductId={editingEntry ? setEditProductId : setNewEntryProductId}
+        storeBrandId={editingEntry ? editStoreBrandId : newEntryStoreBrandId}
+        setStoreBrandId={editingEntry ? setEditStoreBrandId : setNewEntryStoreBrandId}
         locationId={editingEntry ? editStoreLocationId : newEntryStoreLocationId}
         setLocationId={editingEntry ? setEditStoreLocationId : setNewEntryStoreLocationId}
         price={editingEntry ? editPrice : newEntryPrice}

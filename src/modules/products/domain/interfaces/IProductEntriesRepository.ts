@@ -1,5 +1,7 @@
 import { StoreLocation } from "../../../stores/domain/interfaces/IStoreLocationRepository";
 import { Product } from "./IProductsRepository";
+import { PaginatedResponse } from "../../../shared/types/PaginatedResponse";
+import { ProductEntrySortField, SortOrder } from "../types/sorting";
 
 export interface ProductEntry {
   id: number;
@@ -10,7 +12,13 @@ export interface ProductEntry {
 }
 
 export interface IProductEntriesRepository {
-  getAllProductEntries(): Promise<ProductEntry[]>;
+  getAllProductEntries(
+    search?: string, 
+    page?: number, 
+    per_page?: number,
+    sort_field?: ProductEntrySortField,
+    sort_order?: SortOrder
+  ): Promise<PaginatedResponse<ProductEntry>>;
   createProductEntry(product_id: number, store_location_id: number, price: number): Promise<ProductEntry>;
   updateProductEntry(id: number, product_id: number, store_location_id: number, price: number): Promise<ProductEntry>;
   deleteProductEntry(id: number): Promise<void>;
