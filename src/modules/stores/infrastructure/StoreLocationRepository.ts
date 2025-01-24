@@ -100,7 +100,7 @@ export class StoreLocationRepository implements IStoreLocationRepository {
       const response = await api.get('/store-locations/simple', {
         params: {
           search: options?.search || '',
-          store_brand: options?.store_brand_id
+          store_brand_id: options?.store_brand_id
         }
       });
       return response.data;
