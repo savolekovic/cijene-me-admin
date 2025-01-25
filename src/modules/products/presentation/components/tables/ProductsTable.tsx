@@ -29,10 +29,10 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
             <thead>
               <tr>
                 <th style={{ width: '8%', padding: '0.5rem 1rem' }}>Image</th>
-                <th style={{ width: '27%', padding: '0.5rem 1rem' }}>Name</th>
+                <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Name</th>
                 <th style={{ width: '20%', padding: '0.5rem 1rem' }}>Barcode</th>
                 <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Category</th>
-                <th style={{ width: '10%', textAlign: 'right', padding: '0.5rem 1rem' }}>Created At</th>
+                <th style={{ width: '12%', textAlign: 'right', padding: '0.5rem 1rem' }}>Created At</th>
                 <th style={{ width: '10%', textAlign: 'right', padding: '0.5rem 1rem' }}>Actions</th>
               </tr>
             </thead>

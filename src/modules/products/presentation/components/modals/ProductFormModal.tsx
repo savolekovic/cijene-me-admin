@@ -41,7 +41,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [nameError, setNameError] = useState<string>('');
   const [barcodeError, setBarcodeError] = useState<string>('');
   const [imageError, setImageError] = useState<string>('');
-  const [imagePreview, setImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,38 +71,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setImage(file);
       const error = validateImageInput(file);
       setImageError(error || '');
-      
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
     }
   };
 
   const handleRemoveImage = () => {
     setImage(null);
-    setImagePreview('');
-    setImageError('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
-
-  // Cleanup preview URL on unmount
-  React.useEffect(() => {
-    return () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
-    };
-  }, [imagePreview]);
-
-  // Initialize preview when modal opens
-  React.useEffect(() => {
-    if (isOpen && image) {
-      const previewUrl = URL.createObjectURL(image);
-      setImagePreview(previewUrl);
-    }
-  }, [isOpen, image]);
 
   if (!isOpen) return null;
 
@@ -113,7 +89,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+      <div className="modal-dialog modal-dialog-scrollable">
         <div className="modal-content">
           {isLoadingCategories && (
             <div 
@@ -175,7 +151,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
               <div className="mb-3">
                 <label className="form-label">Product Image</label>
-                <div className="d-flex gap-2 mb-2">
+                <div className="d-flex gap-2">
                   <input
                     type="file"
                     className={`form-control ${imageError ? 'is-invalid' : ''}`}
@@ -193,16 +169,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     Remove
                   </button>
                 </div>
-                {imagePreview && (
-                  <div className="mt-2">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="img-thumbnail"
-                      style={{ maxHeight: '200px' }}
-                    />
-                  </div>
-                )}
                 {imageError && (
                   <div className="invalid-feedback d-block">
                     {imageError}
@@ -236,10 +202,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 )}
               </div>
             </div>
-            <div className="modal-footer flex-column flex-sm-row">
+            <div className="modal-footer">
               <button
                 type="button"
-                className="btn btn-secondary w-100 w-sm-auto mb-2 mb-sm-0"
+                className="btn btn-secondary"
                 onClick={onClose}
                 disabled={isProcessing}
               >
@@ -247,7 +213,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="btn btn-primary w-100 w-sm-auto"
+                className="btn btn-primary"
                 disabled={
                   isProcessing || 
                   isLoadingCategories ||
