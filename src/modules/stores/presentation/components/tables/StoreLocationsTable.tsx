@@ -36,51 +36,49 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
               <tr>
                 <th 
                   onClick={() => onSort('address')} 
-                  style={{ cursor: 'pointer', width: '40%', padding: '0.5rem 1rem' }}
+                  style={{ cursor: 'pointer', width: '45%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle"
                 >
                   Address
-                  {sortField === 'address' && (
-                    <i className={`ms-1 fa fa-sort-${sortOrder}`} />
-                  )}
+                  {getSortIcon('address')}
                 </th>
                 <th 
                   onClick={() => onSort('store_brand_name')} 
-                  style={{ cursor: 'pointer', width: '25%' }}
+                  style={{ cursor: 'pointer', width: '25%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle"
                 >
                   Store Brand
-                  {sortField === 'store_brand_name' && (
-                    <i className={`ms-1 fa fa-sort-${sortOrder}`} />
-                  )}
+                  {getSortIcon('store_brand_name')}
                 </th>
                 <th 
                   onClick={() => onSort('created_at')} 
-                  style={{ cursor: 'pointer', width: '20%' }}
+                  style={{ cursor: 'pointer', width: '15%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle"
                 >
                   Created At
-                  {sortField === 'created_at' && (
-                    <i className={`ms-1 fa fa-sort-${sortOrder}`} />
-                  )}
+                  {getSortIcon('created_at')}
                 </th>
                 <th 
-                  style={{ width: '15%' }}
-                  className="border-bottom align-middle"
+                  style={{ width: '15%', padding: '0.5rem 1rem' }}
+                  className="border-bottom align-middle text-end"
                 >
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="border-top-0">
               {locations.map((location) => (
-                <tr key={location.id}>
-                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">{location.address}</td>
-                  <td className="align-middle">{location.store_brand.name}</td>
-                  <td className="align-middle">
+                <tr key={location.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">
+                    {location.address}
+                  </td>
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">
+                    {location.store_brand.name}
+                  </td>
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">
                     {new Date(location.created_at).toLocaleDateString()}
                   </td>
-                  <td className="align-middle">
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle text-end">
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-primary"

@@ -184,25 +184,44 @@ const StoreLocationsPage: React.FC = () => {
   };
 
   return (
-    <div className="container-fluid py-4">
-      <div className="card border-0 shadow-sm">
-        <div className="card-header bg-white py-3">
-          <div className="row align-items-center gy-2">
-            <div className="col-12 col-sm-6">
-              <div className="d-flex justify-content-between justify-content-sm-start align-items-center gap-2">
-                <button
-                  className="btn btn-primary d-inline-flex align-items-center gap-1"
-                  onClick={() => setShowAddModal(true)}
-                >
-                  <FaPlus size={14} />
-                  <span>Add Store Location</span>
-                </button>
+    <div className="container-fluid px-3 px-sm-4 py-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0">Store Locations</h1>
+        <button
+          className="btn btn-primary d-inline-flex align-items-center gap-2"
+          onClick={() => setShowAddModal(true)}
+        >
+          <FaPlus size={14} />
+          <span>Add Store Location</span>
+        </button>
+      </div>
+
+      <div className="card shadow-sm">
+        <div className="card-header border-0 bg-white py-2">
+          <div className="row g-3 mb-0">
+            <div className="col-12 col-sm-8 col-md-6">
+              <div className="d-flex gap-2">
+                <div className="flex-grow-1 position-relative">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search store locations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <FaSearch 
+                    className="position-absolute text-muted" 
+                    style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}
+                    size={14}
+                  />
+                </div>
                 <div className="dropdown">
                   <button
                     id="sort-button"
                     className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     type="button"
+                    style={{ whiteSpace: 'nowrap' }}
                   >
                     <FaSort size={14} />
                     <span className="d-none d-sm-inline">
@@ -216,11 +235,15 @@ const StoreLocationsPage: React.FC = () => {
                   {isDropdownOpen && (
                     <div 
                       id="sort-dropdown"
-                      className="dropdown-menu show position-absolute mt-1" 
-                      style={{ minWidth: '160px' }}
+                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
+                      style={{ 
+                        zIndex: 1000, 
+                        minWidth: '160px',
+                        border: '1px solid rgba(0,0,0,.15)'
+                      }}
                     >
                       <button 
-                        className="dropdown-item"
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => {
                           setSortField('address');
                           setSortOrder('asc');
@@ -230,7 +253,7 @@ const StoreLocationsPage: React.FC = () => {
                         Address (A-Z)
                       </button>
                       <button 
-                        className="dropdown-item"
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => {
                           setSortField('address');
                           setSortOrder('desc');
@@ -239,9 +262,9 @@ const StoreLocationsPage: React.FC = () => {
                       >
                         Address (Z-A)
                       </button>
-                      <div className="dropdown-divider"></div>
+                      <div className="dropdown-divider my-1"></div>
                       <button 
-                        className="dropdown-item"
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => {
                           setSortField('store_brand_name');
                           setSortOrder('asc');
@@ -251,7 +274,7 @@ const StoreLocationsPage: React.FC = () => {
                         Brand (A-Z)
                       </button>
                       <button 
-                        className="dropdown-item"
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => {
                           setSortField('store_brand_name');
                           setSortOrder('desc');
@@ -260,9 +283,9 @@ const StoreLocationsPage: React.FC = () => {
                       >
                         Brand (Z-A)
                       </button>
-                      <div className="dropdown-divider"></div>
+                      <div className="dropdown-divider my-1"></div>
                       <button 
-                        className="dropdown-item"
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => {
                           setSortField('created_at');
                           setSortOrder('desc');
@@ -272,7 +295,7 @@ const StoreLocationsPage: React.FC = () => {
                         Date (Newest)
                       </button>
                       <button 
-                        className="dropdown-item"
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => {
                           setSortField('created_at');
                           setSortOrder('asc');
@@ -286,35 +309,20 @@ const StoreLocationsPage: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="col-12 col-sm-6">
-              <div className="d-flex justify-content-between justify-content-sm-end align-items-center gap-2">
-                <div className="d-flex align-items-center gap-2">
-                  <div className="position-relative flex-grow-1">
-                    <input
-                      type="text"
-                      className="form-control pe-4"
-                      placeholder="Search locations..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <FaSearch 
-                      className="position-absolute top-50 end-0 translate-middle-y me-2 text-muted" 
-                      size={14} 
-                    />
-                  </div>
-                  <select
-                    className="form-select w-auto"
-                    value={pageSize}
-                    onChange={(e) => setPageSize(Number(e.target.value))}
-                  >
-                    <option value={5}>5 per page</option>
-                    <option value={10}>10 per page</option>
-                    <option value={20}>20 per page</option>
-                  </select>
-                  <span className="badge bg-secondary">
-                    Total Locations: {totalCount}
-                  </span>
-                </div>
+            <div className="col-12 col-sm-4 col-md-6">
+              <div className="d-flex justify-content-sm-end align-items-center gap-2">
+                <select
+                  className="form-select w-auto"
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                >
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                </select>
+                <span className="badge bg-secondary">
+                  Total Store Locations: {totalCount}
+                </span>
               </div>
             </div>
           </div>
@@ -326,61 +334,52 @@ const StoreLocationsPage: React.FC = () => {
           )}
         </div>
         <div className="card-body p-0">
-          {isLocationsLoading ? (
-            <div className="text-center py-5">
-              <FaSpinner className="spin" size={24} />
-            </div>
-          ) : locations.length === 0 ? (
+          <StoreLocationsTable
+            locations={locations}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={(field) => {
+              if (field === sortField) {
+                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+              } else {
+                setSortField(field);
+                setSortOrder('asc');
+              }
+            }}
+            onEdit={handleEditClick}
+            onDelete={setDeleteId}
+          />
+
+          {locations.length === 0 && !error && (
             <div className="text-center py-5">
               <div className="text-muted mb-2">
                 <FaInbox size={48} />
               </div>
-              <h5 className="fw-normal text-muted">
-                {searchQuery ? 'No locations found matching your search.' : 'No locations found'}
-              </h5>
-              <p className="text-muted small mb-0">
-                {searchQuery ? 'Try adjusting your search' : 'Create a new location to get started'}
-              </p>
+              <h5 className="fw-normal text-muted">No store locations found</h5>
+              <p className="text-muted small mb-0">Create a new store location to get started</p>
             </div>
-          ) : (
-            <StoreLocationsTable
-              locations={locations}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={(field) => {
-                if (field === sortField) {
-                  setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                } else {
-                  setSortField(field);
-                  setSortOrder('asc');
-                }
-              }}
-              onEdit={handleEditClick}
-              onDelete={setDeleteId}
-            />
           )}
         </div>
-        <div className="card-footer bg-white border-0 py-3">
-          <div className="d-flex justify-content-center align-items-center gap-2">
-            <button
-              className="btn btn-outline-secondary"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-            <span className="mx-2">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              className="btn btn-outline-secondary"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
-          </div>
-        </div>
+      </div>
+
+      <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+        <span className="text-muted small">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
       </div>
 
       <StoreLocationFormModal
