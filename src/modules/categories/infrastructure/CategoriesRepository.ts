@@ -2,15 +2,24 @@ import { api } from '../../../services/api';
 import { ICategoriesRepository, Category, CategoryDropdownItem } from '../domain/interfaces/ICategoriesRepository';
 import axios from 'axios';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
+import { OrderDirection, CategorySortField } from '../presentation/components/CategoriesPage';
 
 export class CategoriesRepository implements ICategoriesRepository {
-  async getAllCategories(search?: string, page: number = 1, per_page: number = 10): Promise<PaginatedResponse<Category>> {
+  async getAllCategories(
+    search?: string, 
+    page: number = 1, 
+    per_page: number = 10,
+    sort_field?: CategorySortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<Category>> {
     try {
       const response = await api.get('/categories/', {
         params: {
           search: search || '',
           per_page,
-          page
+          page,
+          order_by: sort_field,
+          order_direction: sort_order
         },
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',

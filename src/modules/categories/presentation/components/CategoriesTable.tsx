@@ -1,17 +1,32 @@
 import React from 'react';
 import { Category } from '../../domain/interfaces/ICategoriesRepository';
+import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { OrderDirection, CategorySortField } from './CategoriesPage';
 
 interface CategoriesTableProps {
   categories: Category[];
+  sortField: CategorySortField;
+  sortOrder: OrderDirection;
+  onSort: (field: CategorySortField) => void;
   onEdit: (category: Category) => void;
   onDelete: (id: number) => void;
 }
 
 export const CategoriesTable: React.FC<CategoriesTableProps> = ({
   categories,
+  sortField,
+  sortOrder,
+  onSort,
   onEdit,
   onDelete
 }) => {
+  const getSortIcon = (field: CategorySortField) => {
+    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
+    return sortOrder === OrderDirection.ASC ? 
+      <FaSortUp className="ms-1 text-primary" /> : 
+      <FaSortDown className="ms-1 text-primary" />;
+  };
+
   return (
     <>
       {/* Desktop View */}
@@ -21,16 +36,20 @@ export const CategoriesTable: React.FC<CategoriesTableProps> = ({
             <thead>
               <tr>
                 <th 
-                  style={{ width: '60%', padding: '0.5rem 1rem' }}
+                  style={{ width: '60%', padding: '0.5rem 1rem', cursor: 'pointer' }}
                   className="border-bottom align-middle"
+                  onClick={() => onSort(CategorySortField.NAME)}
                 >
                   Name
+                  {getSortIcon(CategorySortField.NAME)}
                 </th>
                 <th 
-                  style={{ width: '25%', padding: '0.5rem 1rem' }}
+                  style={{ width: '25%', padding: '0.5rem 1rem', cursor: 'pointer' }}
                   className="border-bottom align-middle"
+                  onClick={() => onSort(CategorySortField.CREATED_AT)}
                 >
                   Created At
+                  {getSortIcon(CategorySortField.CREATED_AT)}
                 </th>
                 <th 
                   style={{ width: '15%', padding: '0.5rem 1rem' }}

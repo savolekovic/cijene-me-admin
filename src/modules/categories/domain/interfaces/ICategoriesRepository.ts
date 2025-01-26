@@ -1,4 +1,5 @@
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
+import { OrderDirection, CategorySortField } from '../../presentation/components/CategoriesPage';
 
 export interface CategoryDropdownItem {
   id: number;
@@ -12,7 +13,13 @@ export interface Category {
 }
 
 export interface ICategoriesRepository {
-  getAllCategories(search?: string, page?: number, per_page?: number): Promise<PaginatedResponse<Category>>;
+  getAllCategories(
+    search?: string, 
+    page?: number, 
+    per_page?: number,
+    sort_field?: CategorySortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<Category>>;
   getCategoriesForDropdown(): Promise<CategoryDropdownItem[]>;
   createCategory(name: string): Promise<Category>;
   deleteCategory(categoryId: number): Promise<void>;

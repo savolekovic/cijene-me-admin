@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FaPlus, FaSpinner, FaSearch, FaInbox, FaSort, FaFilter } from 'react-icons/fa';
+import { FaPlus, FaSpinner, FaSearch, FaInbox, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { Category } from '../../domain/interfaces/ICategoriesRepository';
@@ -11,14 +11,21 @@ import DeleteConfirmationModal from '../../../shared/presentation/components/mod
 
 const categoriesRepository = new CategoriesRepository();
 
-type SortField = 'name' | 'created_at';
-type SortOrder = 'asc' | 'desc';
+export enum OrderDirection {
+  ASC = 'asc',
+  DESC = 'desc'
+}
+
+export enum CategorySortField {
+  NAME = 'name',
+  CREATED_AT = 'created_at'
+}
 
 const CategoriesPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<SortField>('name');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortField, setSortField] = useState<CategorySortField>(CategorySortField.NAME);
+  const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   
@@ -52,10 +59,10 @@ const CategoriesPage: React.FC = () => {
     data: categoriesResponse,
     isLoading: queryLoading 
   } = useQuery({
-    queryKey: ['categories', searchQuery, currentPage, pageSize],
+    queryKey: ['categories', searchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await categoriesRepository.getAllCategories(searchQuery, currentPage, pageSize);
+        const data = await categoriesRepository.getAllCategories(searchQuery, currentPage, pageSize, sortField, sortOrder);
         if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
@@ -152,30 +159,12 @@ const CategoriesPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isDropdownOpen]);
 
-  const getSortedCategories = () => {
-    return [...categories].sort((a, b) => {
-      if (sortField === 'name') {
-        return sortOrder === 'asc' 
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
-      } else {
-        return sortOrder === 'asc'
-          ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-    });
-  };
-
-  const handleSortClick = () => {
-    if (sortField === 'name') {
-      setSortField('created_at');
-      setSortOrder('desc');
-    } else if (sortField === 'created_at' && sortOrder === 'desc') {
-      setSortField('created_at');
-      setSortOrder('asc');
+  const handleSort = (field: CategorySortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
     } else {
-      setSortField('name');
-      setSortOrder('asc');
+      setSortField(field);
+      setSortOrder(OrderDirection.ASC);
     }
   };
 
@@ -263,7 +252,7 @@ const CategoriesPage: React.FC = () => {
             <div className="col-12 col-sm-8 col-md-6">
               <div className="d-flex gap-2">
                 <div className="input-group flex-grow-1">
-                <input
+                  <input
                     type="text"
                     className="form-control"
                     placeholder="Search categories..."
@@ -286,9 +275,9 @@ const CategoriesPage: React.FC = () => {
                   >
                     <FaSort size={14} />
                     <span className="d-none d-sm-inline">
-                      {sortField === 'name' 
-                        ? `Name (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`}
+                      {sortField === CategorySortField.NAME 
+                        ? `Name (${sortOrder === OrderDirection.ASC ? 'A-Z' : 'Z-A'})`
+                        : `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`}
                     </span>
                   </button>
                   {isDropdownOpen && (
@@ -304,8 +293,8 @@ const CategoriesPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('name'); 
-                          setSortOrder('asc');
+                          setSortField(CategorySortField.NAME); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -314,8 +303,8 @@ const CategoriesPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('name'); 
-                          setSortOrder('desc');
+                          setSortField(CategorySortField.NAME); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -325,8 +314,8 @@ const CategoriesPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('created_at'); 
-                          setSortOrder('desc');
+                          setSortField(CategorySortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -335,8 +324,8 @@ const CategoriesPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('created_at'); 
-                          setSortOrder('asc');
+                          setSortField(CategorySortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -368,7 +357,10 @@ const CategoriesPage: React.FC = () => {
         </div>
         <div className="card-body p-0">
           <CategoriesTable
-            categories={getSortedCategories()}
+            categories={categories}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
