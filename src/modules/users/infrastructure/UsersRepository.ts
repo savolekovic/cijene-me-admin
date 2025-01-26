@@ -2,15 +2,24 @@ import { api } from '../../../services/api';
 import { IUsersRepository, User } from '../domain/interfaces/IUsersRepository';
 import axios from 'axios';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
+import { OrderDirection, UserSortField } from '../presentation/components/UsersPage';
 
 export class UsersRepository implements IUsersRepository {
-  async getAllUsers(search?: string, page: number = 1, per_page: number = 10): Promise<PaginatedResponse<User>> {
+  async getAllUsers(
+    search?: string, 
+    page: number = 1, 
+    per_page: number = 10,
+    sort_field?: UserSortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<User>> {
     try {
       const response = await api.get('/users/', {
         params: {
           search: search || '',
           per_page,
-          page
+          page,
+          order_by: sort_field,
+          order_direction: sort_order
         },
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',

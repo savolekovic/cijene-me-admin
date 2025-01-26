@@ -11,14 +11,22 @@ import ChangeRoleModal from './modals/ChangeRoleModal';
 
 const usersRepository = new UsersRepository();
 
-type SortField = 'full_name' | 'email' | 'role' | 'created_at';
-type SortOrder = 'asc' | 'desc';
+export enum OrderDirection {
+  ASC = 'asc',
+  DESC = 'desc'
+}
+
+export enum UserSortField {
+  FULL_NAME = 'full_name',
+  EMAIL = 'email',
+  CREATED_AT = 'created_at'
+}
 
 const UsersPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<SortField>('full_name');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortField, setSortField] = useState<UserSortField>(UserSortField.FULL_NAME);
+  const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
   const [changeRoleUser, setChangeRoleUser] = useState<User | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -34,10 +42,10 @@ const UsersPage: React.FC = () => {
     data: usersResponse,
     isLoading 
   } = useQuery({
-    queryKey: ['users', searchQuery, currentPage, pageSize],
+    queryKey: ['users', searchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await usersRepository.getAllUsers(searchQuery, currentPage, pageSize);
+        const data = await usersRepository.getAllUsers(searchQuery, currentPage, pageSize, sortField, sortOrder);
         if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
@@ -100,43 +108,6 @@ const UsersPage: React.FC = () => {
     }
   });
 
-  // Filter and sort users
-  const filteredUsers = React.useMemo(() => {
-    let filtered = users.filter(user => 
-      user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    return [...filtered].sort((a, b) => {
-      let aValue: string | number = '';
-      let bValue: string | number = '';
-
-      switch (sortField) {
-        case 'full_name':
-          aValue = a.full_name.toLowerCase();
-          bValue = b.full_name.toLowerCase();
-          break;
-        case 'email':
-          aValue = a.email.toLowerCase();
-          bValue = b.email.toLowerCase();
-          break;
-        case 'role':
-          aValue = a.role.toLowerCase() === 'moderator' ? 1 : 0;
-          bValue = b.role.toLowerCase() === 'moderator' ? 1 : 0;
-          break;
-        case 'created_at':
-          aValue = new Date(a.created_at).getTime();
-          bValue = new Date(b.created_at).getTime();
-          break;
-      }
-
-      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [users, searchQuery, sortField, sortOrder]);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const dropdown = document.getElementById('sort-dropdown');
@@ -156,12 +127,12 @@ const UsersPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isDropdownOpen]);
 
-  const handleSort = (field: SortField) => {
+  const handleSort = (field: UserSortField) => {
     if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
     } else {
       setSortField(field);
-      setSortOrder('asc');
+      setSortOrder(OrderDirection.ASC);
     }
   };
 
@@ -227,12 +198,12 @@ const UsersPage: React.FC = () => {
                   >
                     <FaSort size={14} />
                     <span className="d-none d-sm-inline">
-                      {sortField === 'full_name' 
-                        ? `Name (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : sortField === 'created_at'
-                        ? `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`
-                        : sortField === 'role'
-                        ? `Role (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
+                      {sortField === UserSortField.FULL_NAME 
+                        ? `Name (${sortOrder === OrderDirection.ASC ? 'A-Z' : 'Z-A'})`
+                        : sortField === UserSortField.CREATED_AT
+                        ? `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`
+                        : sortField === UserSortField.EMAIL
+                        ? `Email (${sortOrder === OrderDirection.ASC ? 'A-Z' : 'Z-A'})`
                         : 'Sort By'}
                     </span>
                   </button>
@@ -249,8 +220,8 @@ const UsersPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('full_name'); 
-                          setSortOrder('asc');
+                          setSortField(UserSortField.FULL_NAME); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -259,8 +230,8 @@ const UsersPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('full_name'); 
-                          setSortOrder('desc');
+                          setSortField(UserSortField.FULL_NAME); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -270,29 +241,29 @@ const UsersPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('role'); 
-                          setSortOrder('asc');
+                          setSortField(UserSortField.EMAIL); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
-                        Role (User → Moderator)
+                        Email (A-Z)
                       </button>
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('role'); 
-                          setSortOrder('desc');
+                          setSortField(UserSortField.EMAIL); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
-                        Role (Moderator → User)
+                        Email (Z-A)
                       </button>
                       <div className="dropdown-divider my-1"></div>
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('created_at'); 
-                          setSortOrder('desc');
+                          setSortField(UserSortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -301,8 +272,8 @@ const UsersPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('created_at'); 
-                          setSortOrder('asc');
+                          setSortField(UserSortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >

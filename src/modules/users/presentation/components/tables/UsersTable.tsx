@@ -1,12 +1,13 @@
 import React from 'react';
 import { User } from '../../../domain/interfaces/IUsersRepository';
 import { FaSort, FaSortDown, FaSortUp } from 'react-icons/fa';
+import { OrderDirection, UserSortField } from '../UsersPage';
 
 interface UsersTableProps {
   users: User[];
-  sortField: 'full_name' | 'email' | 'role' | 'created_at';
-  sortOrder: 'asc' | 'desc';
-  onSort: (field: 'full_name' | 'email' | 'role' | 'created_at') => void;
+  sortField: UserSortField;
+  sortOrder: OrderDirection;
+  onSort: (field: UserSortField) => void;
   onDelete: (id: number) => void;
   onChangeRole: (user: User) => void;
   deletingUsers: number[];
@@ -21,9 +22,9 @@ const UsersTable: React.FC<UsersTableProps> = ({
   onChangeRole,
   deletingUsers
 }) => {
-  const getSortIcon = (field: string) => {
+  const getSortIcon = (field: UserSortField) => {
     if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === 'asc' ? 
+    return sortOrder === OrderDirection.ASC ? 
       <FaSortUp className="ms-1 text-primary" /> : 
       <FaSortDown className="ms-1 text-primary" />;
   };
@@ -47,31 +48,33 @@ const UsersTable: React.FC<UsersTableProps> = ({
               <tr className="border-bottom">
                 <th 
                   style={{ width: '27.5%', padding: '0.5rem 1rem', cursor: 'pointer' }}
-                  onClick={() => onSort('full_name')}
+                  onClick={() => onSort(UserSortField.FULL_NAME)}
                   className="align-middle"
                 >
                   Name
+                  {getSortIcon(UserSortField.FULL_NAME)}
                 </th>
                 <th 
                   style={{ width: '27.5%', padding: '0.5rem 1rem', cursor: 'pointer' }}
-                  onClick={() => onSort('email')}
+                  onClick={() => onSort(UserSortField.EMAIL)}
                   className="align-middle"
                 >
                   Email
+                  {getSortIcon(UserSortField.EMAIL)}
                 </th>
                 <th 
-                  style={{ width: '10%', padding: '0.5rem 1rem', cursor: 'pointer' }}
-                  onClick={() => onSort('role')}
+                  style={{ width: '10%', padding: '0.5rem 1rem' }}
                   className="align-middle"
                 >
                   Role
                 </th>
                 <th 
                   style={{ width: '15%', padding: '0.5rem 1rem', cursor: 'pointer' }}
-                  onClick={() => onSort('created_at')}
+                  onClick={() => onSort(UserSortField.CREATED_AT)}
                   className="text-end align-middle"
                 >
                   Created At
+                  {getSortIcon(UserSortField.CREATED_AT)}
                 </th>
                 <th 
                   style={{ width: '15%', padding: '0.5rem 1rem' }}

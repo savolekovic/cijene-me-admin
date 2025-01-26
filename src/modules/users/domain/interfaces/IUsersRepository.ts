@@ -1,4 +1,5 @@
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
+import { OrderDirection, UserSortField } from '../../presentation/components/UsersPage';
 
 export interface User {
   id: number;
@@ -9,7 +10,13 @@ export interface User {
 }
 
 export interface IUsersRepository {
-  getAllUsers(search?: string, page?: number, per_page?: number): Promise<PaginatedResponse<User>>;
+  getAllUsers(
+    search?: string, 
+    page?: number, 
+    per_page?: number,
+    sort_field?: UserSortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<User>>;
   deleteUser(userId: number): Promise<{ message: string }>;
   changeRole(userId: number, newRole: string): Promise<User>;
 } 
