@@ -13,13 +13,6 @@ interface ProductEntriesTableProps {
   onDelete: (id: number) => void;
 }
 
-const getSortIcon = (currentField: ProductEntrySortField, sortField: ProductEntrySortField, sortOrder: OrderDirection) => {
-  if (currentField !== sortField) return <FaSort className="ms-1 text-muted" />;
-  return sortOrder === OrderDirection.ASC ? 
-    <FaSortUp className="ms-1 text-primary" /> : 
-    <FaSortDown className="ms-1 text-primary" />;
-};
-
 export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
   entries,
   sortField,
@@ -28,6 +21,13 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
   onEdit,
   onDelete
 }) => {
+  const getSortIcon = (field: ProductEntrySortField) => {
+    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
+    return sortOrder === OrderDirection.ASC ? 
+      <FaSortUp className="ms-1 text-primary" /> : 
+      <FaSortDown className="ms-1 text-primary" />;
+  };
+
   return (
     <>
       {/* Desktop View */}
@@ -46,7 +46,7 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
                 >
                   <div className="d-flex align-items-center justify-content-end">
                     <span>Price</span>
-                    {getSortIcon(ProductEntrySortField.PRICE, sortField, sortOrder)}
+                    {getSortIcon(ProductEntrySortField.PRICE)}
                   </div>
                 </th>
                 <th 
@@ -56,7 +56,7 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
                 >
                   <div className="d-flex align-items-center justify-content-end">
                     <span>Created At</span>
-                    {getSortIcon(ProductEntrySortField.CREATED_AT, sortField, sortOrder)}
+                    {getSortIcon(ProductEntrySortField.CREATED_AT)}
                   </div>
                 </th>
                 <th style={{ width: '15%', padding: '0.5rem 1rem' }} className="text-end">Actions</th>
