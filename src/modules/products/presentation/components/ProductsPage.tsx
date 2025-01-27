@@ -44,7 +44,7 @@ const ProductsPage: React.FC = () => {
   // Query for fetching products
   const { 
     data: productsResponse,
-    isLoading 
+    isLoading: queryLoading 
   } = useQuery<PaginatedResponse<Product>>({
     queryKey: ['products', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
@@ -277,12 +277,6 @@ const ProductsPage: React.FC = () => {
     setCurrentPage(1);
   }, [debouncedSearchQuery, pageSize]);
 
-  if (isLoading) {
-    return (
-      <TableLoadingSpinner />
-    );
-  }
-
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -435,7 +429,7 @@ const ProductsPage: React.FC = () => {
           )}
         </div>
         <div className="card-body p-0">
-          {isLoading ? (
+          {queryLoading ? (
             <TableLoadingSpinner />
           ) : (
             <>

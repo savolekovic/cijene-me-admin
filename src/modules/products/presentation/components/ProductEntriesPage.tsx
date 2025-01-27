@@ -57,7 +57,7 @@ const ProductEntriesPage: React.FC = () => {
   // Query for fetching product entries
   const { 
     data: productEntriesResponse = { data: [], total_count: 0 },
-    isLoading,
+    isLoading: queryLoading,
     isFetching: isEntriesFetching
   } = useQuery({
     queryKey: ['product-entries', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
@@ -314,14 +314,6 @@ const ProductEntriesPage: React.FC = () => {
     setCurrentPage(1);
   }, [debouncedSearchQuery, pageSize]);
 
-  if (isLoading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
-      </div>
-    );
-  }
-
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -450,7 +442,7 @@ const ProductEntriesPage: React.FC = () => {
           )}
         </div>
         <div className="card-body p-0">
-          {isLoading ? (
+          {queryLoading ? (
             <TableLoadingSpinner />
           ) : (
             <>
