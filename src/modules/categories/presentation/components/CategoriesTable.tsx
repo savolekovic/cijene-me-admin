@@ -10,6 +10,7 @@ interface CategoriesTableProps {
   onSort: (field: CategorySortField) => void;
   onEdit: (category: Category) => void;
   onDelete: (id: number) => void;
+  deletingCategories: number[];
 }
 
 export const CategoriesTable: React.FC<CategoriesTableProps> = ({
@@ -18,7 +19,8 @@ export const CategoriesTable: React.FC<CategoriesTableProps> = ({
   sortOrder,
   onSort,
   onEdit,
-  onDelete
+  onDelete,
+  deletingCategories
 }) => {
   const getSortIcon = (field: CategorySortField) => {
     if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
@@ -77,8 +79,9 @@ export const CategoriesTable: React.FC<CategoriesTableProps> = ({
                       <button
                         className="btn btn-sm btn-outline-danger"
                         onClick={() => onDelete(category.id)}
+                        disabled={deletingCategories.includes(category.id)}
                       >
-                        Delete
+                        {deletingCategories.includes(category.id) ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </td>
@@ -108,8 +111,9 @@ export const CategoriesTable: React.FC<CategoriesTableProps> = ({
                 <button
                   className="btn btn-sm btn-outline-danger flex-grow-1"
                   onClick={() => onDelete(category.id)}
+                  disabled={deletingCategories.includes(category.id)}
                 >
-                  Delete
+                  {deletingCategories.includes(category.id) ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>

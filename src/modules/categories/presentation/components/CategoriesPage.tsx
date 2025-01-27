@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FaPlus, FaSpinner, FaSearch, FaInbox, FaSort } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaInbox, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { Category } from '../../domain/interfaces/ICategoriesRepository';
@@ -9,51 +9,38 @@ import { CategoriesTable } from './CategoriesTable';
 import { CategoryFormModal } from './modals/CategoryFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { OrderDirection, CategorySortField } from '../../../shared/types/sorting';
+import { useDebounceSearch } from '../../../shared/hooks/useDebounceSearch';
+import { TableLoadingSpinner } from '../../../shared/presentation/components/TableLoadingSpinner';
 
 const categoriesRepository = new CategoriesRepository();
 
 const CategoriesPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
   const [sortField, setSortField] = useState<CategorySortField>(CategorySortField.NAME);
   const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  
-  // Add Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-
-  // Edit Modal State
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editName, setEditName] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-
-  // Delete Modal State
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [deleteError, setDeleteError] = useState<string>('');
-
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const { logout } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Reset to first page when search query or page size changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, pageSize]);
-
   // Query for fetching categories
   const { 
     data: categoriesResponse,
-    isLoading: queryLoading 
+    isLoading 
   } = useQuery({
-    queryKey: ['categories', searchQuery, currentPage, pageSize, sortField, sortOrder],
+    queryKey: ['categories', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await categoriesRepository.getAllCategories(searchQuery, currentPage, pageSize, sortField, sortOrder);
+        const data = await categoriesRepository.getAllCategories(debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder);
         if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
@@ -71,6 +58,11 @@ const CategoriesPage: React.FC = () => {
   const categories = categoriesResponse?.data || [];
   const totalCount = categoriesResponse?.total_count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Reset to first page when search query or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, pageSize]);
 
   // Mutation for creating categories
   const createMutation = useMutation<Category, Error, { name: string }>({
@@ -104,10 +96,9 @@ const CategoriesPage: React.FC = () => {
     onSuccess: (_) => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       setDeleteId(null);
-      setDeleteError('');
     },
     onError: (err) => {
-      setDeleteError(err instanceof Error ? err.message : 'Failed to delete category');
+      setError(err instanceof Error ? err.message : 'Failed to delete category');
     }
   });
 
@@ -141,14 +132,11 @@ const CategoriesPage: React.FC = () => {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsCreating(true);
     try {
       await createMutation.mutateAsync({ name: newCategoryName });
       setNewCategoryName('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create category');
-    } finally {
-      setIsCreating(false);
     }
   };
 
@@ -161,14 +149,11 @@ const CategoriesPage: React.FC = () => {
     e.preventDefault();
     if (!editingCategory) return;
     
-    setIsEditing(true);
     try {
       await updateMutation.mutateAsync({ id: editingCategory.id, name: editName });
       setEditName('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update category');
-    } finally {
-      setIsEditing(false);
     }
   };
 
@@ -181,31 +166,16 @@ const CategoriesPage: React.FC = () => {
     deleteMutation.mutate(deleteId);
   };
 
-  if (queryLoading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
-      </div>
-    );
-  }
-
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show" role="alert">
-          {error}
-          <button type="button" className="btn-close" onClick={() => setError('')} />
-        </div>
-      )}
-
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">Categories</h1>
+        <h1 className="h3 mb-0">Categories Management</h1>
         <button
-          className="btn btn-primary d-inline-flex align-items-center gap-2"
+          className="btn btn-primary d-inline-flex gap-2 align-items-center"
           onClick={() => setShowAddModal(true)}
         >
           <FaPlus size={14} />
-          <span>Add Category</span>
+          Add Category
         </button>
       </div>
 
@@ -317,29 +287,42 @@ const CategoriesPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-        <div className="card-body p-0">
-          <CategoriesTable
-            categories={categories}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-
-          {categories.length === 0 && !error && (
-            <div className="text-center py-5">
-              <div className="text-muted mb-2">
-                <FaInbox size={48} />
-              </div>
-              <h5 className="fw-normal text-muted">
-                {searchQuery ? 'No categories found matching your search.' : 'No categories found'}
-              </h5>
-              <p className="text-muted small mb-0">Create a new category to get started</p>
+          {error && (
+            <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+              {error}
+              <button type="button" className="btn-close" onClick={() => setError('')} />
             </div>
           )}
         </div>
+
+        {isLoading ? (
+          <TableLoadingSpinner />
+        ) : (
+          <>
+            <CategoriesTable 
+              categories={categories}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              deletingCategories={deleteMutation.isPending ? [deleteId!] : []}
+            />
+
+            {categories.length === 0 && !error && (
+              <div className="text-center py-5">
+                <div className="text-muted mb-2">
+                  <FaInbox size={48} />
+                </div>
+                <h5 className="fw-normal text-muted">
+                  {searchQuery ? 'No categories found matching your search.' : 'No categories found.'}
+                </h5>
+                <p className="text-muted small mb-0">Try adding some categories to get started</p>
+              </div>
+            )}
+          </>
+        )}
+
         <div className="card-footer bg-white border-0 py-3">
           <div className="d-flex justify-content-center align-items-center gap-2">
             <button
@@ -368,7 +351,7 @@ const CategoriesPage: React.FC = () => {
         mode="add"
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddSubmit}
-        isProcessing={isCreating}
+        isProcessing={createMutation.isPending}
         name={newCategoryName}
         setName={setNewCategoryName}
       />
@@ -378,7 +361,7 @@ const CategoriesPage: React.FC = () => {
         mode="edit"
         onClose={() => setEditingCategory(null)}
         onSubmit={handleEditSubmit}
-        isProcessing={isEditing}
+        isProcessing={updateMutation.isPending}
         name={editName}
         setName={setEditName}
       />
@@ -390,10 +373,8 @@ const CategoriesPage: React.FC = () => {
         isDeleting={deleteMutation.isPending}
         onClose={() => {
           setDeleteId(null);
-          setDeleteError('');
         }}
         onConfirm={handleDeleteConfirm}
-        error={deleteError}
       />
     </div>
   );
