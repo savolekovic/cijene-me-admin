@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaSearch, FaSort, FaInbox, FaSpinner } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaSort, FaInbox } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
@@ -9,12 +9,14 @@ import { StoreBrandFormModal } from './modals/StoreBrandFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { StoreBrandsTable } from './tables/StoreBrandsTable';
 import { OrderDirection, StoreBrandSortField } from '../../../shared/types/sorting';
+import { useDebounceSearch } from '../../../shared/hooks/useDebounceSearch';
+import { TableLoadingSpinner } from '../../../shared/presentation/components/TableLoadingSpinner';
 
 const storeBrandRepository = new StoreBrandRepository();
 
 const StoreBrandPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
   const [sortField, setSortField] = useState<StoreBrandSortField>(StoreBrandSortField.NAME);
   const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,10 +38,10 @@ const StoreBrandPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Reset to first page when search query changes
+  // Reset to first page when search query or page size changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, pageSize]);
+  }, [debouncedSearchQuery, pageSize]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -65,10 +67,10 @@ const StoreBrandPage: React.FC = () => {
     data: storeBrandsResponse,
     isLoading: queryLoading 
   } = useQuery({
-    queryKey: ['store-brands', searchQuery, currentPage, pageSize, sortField, sortOrder],
+    queryKey: ['store-brands', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await storeBrandRepository.getAllStoreBrands(searchQuery, currentPage, pageSize, sortField, sortOrder);
+        const data = await storeBrandRepository.getAllStoreBrands(debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder);
         if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
@@ -160,14 +162,6 @@ const StoreBrandPage: React.FC = () => {
     if (!deleteId) return;
     deleteMutation.mutate(deleteId);
   };
-
-  if (queryLoading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
-      </div>
-    );
-  }
 
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
@@ -298,32 +292,39 @@ const StoreBrandPage: React.FC = () => {
           )}
         </div>
         <div className="card-body p-0">
-          <StoreBrandsTable
-            storeBrands={storeBrands}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={(field) => {
-              if (sortField === field) {
-                setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
-              } else {
-                setSortField(field);
-                setSortOrder(OrderDirection.ASC);
-              }
-            }}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+          {queryLoading ? (
+            <TableLoadingSpinner />
+          ) : (
+            <>
+              <StoreBrandsTable
+                storeBrands={storeBrands}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={(field) => {
+                  if (sortField === field) {
+                    setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
+                  } else {
+                    setSortField(field);
+                    setSortOrder(OrderDirection.ASC);
+                  }
+                }}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                deletingBrands={deleteMutation.isPending ? [deleteId!] : []}
+              />
 
-          {storeBrands.length === 0 && !error && (
-            <div className="text-center py-5">
-              <div className="text-muted mb-2">
-                <FaInbox size={48} />
-              </div>
-              <h5 className="fw-normal text-muted">
-                {searchQuery ? 'No store brands found matching your search.' : 'No store brands found'}
-              </h5>
-              <p className="text-muted small mb-0">Create a new store brand to get started</p>
-            </div>
+              {storeBrands.length === 0 && !error && (
+                <div className="text-center py-5">
+                  <div className="text-muted mb-2">
+                    <FaInbox size={48} />
+                  </div>
+                  <h5 className="fw-normal text-muted">
+                    {searchQuery ? 'No store brands found matching your search.' : 'No store brands found'}
+                  </h5>
+                  <p className="text-muted small mb-0">Create a new store brand to get started</p>
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="card-footer bg-white border-0 py-3">
