@@ -11,6 +11,7 @@ interface ProductsTableProps {
   onSort: (field: ProductSortField) => void;
   onEdit: (product: Product) => void;
   onDelete: (id: number) => void;
+  deletingProducts: number[];
 }
 
 export const ProductsTable: React.FC<ProductsTableProps> = ({
@@ -19,7 +20,8 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   sortOrder,
   onSort,
   onEdit,
-  onDelete
+  onDelete,
+  deletingProducts
 }) => {
   const getSortIcon = (field: ProductSortField) => {
     if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
@@ -92,8 +94,9 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                       <button
                         className="btn btn-sm btn-outline-danger"
                         onClick={() => onDelete(product.id)}
+                        disabled={deletingProducts.includes(product.id)}
                       >
-                        Delete
+                        {deletingProducts.includes(product.id) ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </td>
@@ -134,8 +137,9 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                 <button
                   className="btn btn-sm btn-outline-danger flex-grow-1"
                   onClick={() => onDelete(product.id)}
+                  disabled={deletingProducts.includes(product.id)}
                 >
-                  Delete
+                  {deletingProducts.includes(product.id) ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>

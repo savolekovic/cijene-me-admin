@@ -12,12 +12,15 @@ import { CategoriesRepository } from '../../../categories/infrastructure/Categor
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
 import { CategoryDropdownItem } from '../../../categories/domain/interfaces/ICategoriesRepository';
 import { OrderDirection, ProductSortField } from '../../../shared/types/sorting';
+import { useDebounceSearch } from '../../../shared/hooks/useDebounceSearch';
+import { TableLoadingSpinner } from '../../../shared/presentation/components/TableLoadingSpinner';
 
 const productsRepository = new ProductsRepository();
 const categoriesRepository = new CategoriesRepository();
 
 const ProductsPage: React.FC = () => {
   const [error, setError] = useState<string>('');
+  const { searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
   const [sortField, setSortField] = useState<ProductSortField>(ProductSortField.NAME);
   const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -33,7 +36,6 @@ const ProductsPage: React.FC = () => {
   const [editCategoryId, setEditCategoryId] = useState(0);
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -42,12 +44,12 @@ const ProductsPage: React.FC = () => {
   // Query for fetching products
   const { 
     data: productsResponse,
-    isLoading: queryLoading 
+    isLoading 
   } = useQuery<PaginatedResponse<Product>>({
-    queryKey: ['products', searchQuery, currentPage, pageSize, sortField, sortOrder],
+    queryKey: ['products', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await productsRepository.getAllProducts(searchQuery, currentPage, pageSize, sortField, sortOrder);
+        const data = await productsRepository.getAllProducts(debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder);
         if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
@@ -65,11 +67,6 @@ const ProductsPage: React.FC = () => {
   const products = productsResponse?.data || [];
   const totalCount = productsResponse?.total_count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
-
-  // Reset to first page when search query or page size changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, pageSize]);
 
   // Query for fetching categories for dropdowns
   const { 
@@ -117,7 +114,7 @@ const ProductsPage: React.FC = () => {
           name: category!.name
         }
       };
-      queryClient.setQueryData(['products', searchQuery, currentPage, pageSize, sortField, sortOrder], (oldData: any) => {
+      queryClient.setQueryData(['products', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder], (oldData: any) => {
         if (!oldData) return { total_count: 1, data: [productWithCategory] };
         return {
           total_count: oldData.total_count + 1,
@@ -159,7 +156,7 @@ const ProductsPage: React.FC = () => {
           name: category!.name
         }
       };
-      queryClient.setQueryData(['products', searchQuery, currentPage, pageSize, sortField, sortOrder], (oldData: any) => {
+      queryClient.setQueryData(['products', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder], (oldData: any) => {
         if (!oldData) return { total_count: oldData.total_count, data: [updatedProduct] };
         return {
           total_count: oldData.total_count,
@@ -181,7 +178,7 @@ const ProductsPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (productId: number) => productsRepository.deleteProduct(productId),
     onSuccess: (_, productId) => {
-      queryClient.setQueryData<PaginatedResponse<Product>>(['products', searchQuery, currentPage, pageSize, sortField, sortOrder], (oldData) => {
+      queryClient.setQueryData<PaginatedResponse<Product>>(['products', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder], (oldData) => {
         if (!oldData) return { total_count: 0, data: [] };
         return {
           total_count: oldData.total_count - 1,
@@ -275,11 +272,14 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  if (queryLoading) {
+  // Reset to first page when search query or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, pageSize]);
+
+  if (isLoading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
-      </div>
+      <TableLoadingSpinner />
     );
   }
 
@@ -435,27 +435,34 @@ const ProductsPage: React.FC = () => {
           )}
         </div>
         <div className="card-body p-0">
-          <ProductsTable
-            products={products}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            onEdit={handleEditClick}
-            onDelete={setDeleteId}
-          />
+          {isLoading ? (
+            <TableLoadingSpinner />
+          ) : (
+            <>
+              <ProductsTable
+                products={products}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                onEdit={handleEditClick}
+                onDelete={setDeleteId}
+                deletingProducts={deleteMutation.isPending ? [deleteId!] : []}
+              />
 
-          {products.length === 0 && !error && (
-            <div className="text-center py-5">
-              <div className="text-muted mb-2">
-                <FaInbox size={48} />
-              </div>
-              <h5 className="fw-normal text-muted">
-                {searchQuery ? 'No products found matching your search.' : 'No products found'}
-              </h5>
-              <p className="text-muted small mb-0">
-                {searchQuery ? 'Try a different search term' : 'Create a new product to get started'}
-              </p>
-            </div>
+              {products.length === 0 && !error && (
+                <div className="text-center py-5">
+                  <div className="text-muted mb-2">
+                    <FaInbox size={48} />
+                  </div>
+                  <h5 className="fw-normal text-muted">
+                    {searchQuery ? 'No products found matching your search.' : 'No products found'}
+                  </h5>
+                  <p className="text-muted small mb-0">
+                    {searchQuery ? 'Try a different search term' : 'Create a new product to get started'}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="card-footer bg-white border-0 py-3">
