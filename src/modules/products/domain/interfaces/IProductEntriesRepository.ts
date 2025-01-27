@@ -1,25 +1,43 @@
-import { StoreLocation } from "../../../stores/domain/interfaces/IStoreLocationRepository";
-import { Product } from "./IProductsRepository";
 import { PaginatedResponse } from "../../../shared/types/PaginatedResponse";
-import { ProductEntrySortField, SortOrder } from "../types/sorting";
+import { OrderDirection, ProductEntrySortField } from "../types/sorting";
 
 export interface ProductEntry {
   id: number;
+  product: {
+    id: number;
+    name: string;
+    image_url: string | null;
+  };
+  store_location: {
+    id: number;
+    address: string;
+    store_brand: {
+      id: number;
+      name: string;
+    };
+  };
   price: number;
   created_at: string;
-  product: Product;
-  store_location: StoreLocation;
 }
 
 export interface IProductEntriesRepository {
   getAllProductEntries(
-    search?: string, 
-    page?: number, 
+    search?: string,
+    page?: number,
     per_page?: number,
     sort_field?: ProductEntrySortField,
-    sort_order?: SortOrder
+    sort_order?: OrderDirection
   ): Promise<PaginatedResponse<ProductEntry>>;
-  createProductEntry(product_id: number, store_location_id: number, price: number): Promise<ProductEntry>;
-  updateProductEntry(id: number, product_id: number, store_location_id: number, price: number): Promise<ProductEntry>;
+  createProductEntry(
+    product_id: number,
+    store_location_id: number,
+    price: number
+  ): Promise<ProductEntry>;
+  updateProductEntry(
+    id: number,
+    product_id: number,
+    store_location_id: number,
+    price: number
+  ): Promise<ProductEntry>;
   deleteProductEntry(id: number): Promise<void>;
 } 

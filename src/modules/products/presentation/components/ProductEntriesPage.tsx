@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaInbox, FaSearch, FaSpinner } from 'react-icons/fa';
+import { FaPlus, FaInbox, FaSearch, FaSpinner, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
@@ -7,7 +7,7 @@ import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository'
 import { ProductEntriesRepository } from '../../infrastructure/ProductEntriesRepository';
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
 import { StoreLocationRepository } from '../../../stores/infrastructure/StoreLocationRepository';
-import { ProductEntrySortField, SortOrder } from '../../domain/types/sorting';
+import { ProductEntrySortField, SortOrder, OrderDirection } from '../../domain/types/sorting';
 import { ProductEntriesTable } from './tables/ProductEntriesTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { ProductEntryFormModal } from './modals/ProductEntryFormModal';
@@ -42,12 +42,15 @@ const ProductEntriesPage: React.FC = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Sorting
-  const [sortField, setSortField] = useState<ProductEntrySortField>('product_name');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortField, setSortField] = useState<ProductEntrySortField>(ProductEntrySortField.CREATED_AT);
+  const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.DESC);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Add dropdown state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Reset to first page when search query or page size changes
   useEffect(() => {
@@ -137,6 +140,26 @@ const ProductEntriesPage: React.FC = () => {
       setEditPrice(editingEntry.price.toString());
     }
   }, [editingEntry]);
+
+  // Add click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.getElementById('sort-dropdown');
+      const button = document.getElementById('sort-button');
+      if (
+        isDropdownOpen && 
+        dropdown && 
+        button && 
+        !dropdown.contains(event.target as Node) && 
+        !button.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDropdownOpen]);
 
   const isLoadingDropdownData = isProductsLoading || isStoreBrandsLoading || isLocationsLoading;
 
@@ -260,10 +283,10 @@ const ProductEntriesPage: React.FC = () => {
 
   const handleSort = (field: ProductEntrySortField) => {
     if (field === sortField) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
     } else {
       setSortField(field);
-      setSortOrder('asc');
+      setSortOrder(OrderDirection.ASC);
     }
   };
 
@@ -328,6 +351,75 @@ const ProductEntriesPage: React.FC = () => {
                     style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}
                     size={14}
                   />
+                </div>
+                <div className="position-relative">
+                  <button 
+                    id="sort-button"
+                    className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <FaSort size={14} />
+                    <span className="d-none d-sm-inline">
+                      {sortField === ProductEntrySortField.PRICE 
+                        ? `Price (${sortOrder === OrderDirection.ASC ? '↑' : '↓'})`
+                        : `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`}
+                    </span>
+                  </button>
+                  {isDropdownOpen && (
+                    <div 
+                      id="sort-dropdown"
+                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
+                      style={{ 
+                        zIndex: 1000, 
+                        minWidth: '160px',
+                        border: '1px solid rgba(0,0,0,.15)'
+                      }}
+                    >
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField(ProductEntrySortField.PRICE); 
+                          setSortOrder(OrderDirection.ASC);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Price (low to high)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField(ProductEntrySortField.PRICE); 
+                          setSortOrder(OrderDirection.DESC);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Price (high to low)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField(ProductEntrySortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.DESC);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Newest)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField(ProductEntrySortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.ASC);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Oldest)
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

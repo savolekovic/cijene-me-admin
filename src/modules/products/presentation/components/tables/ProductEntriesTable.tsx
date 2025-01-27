@@ -1,21 +1,21 @@
 import React from 'react';
 import { FaSort, FaSortDown, FaSortUp, FaStore, FaMapMarkerAlt } from 'react-icons/fa';
 import { ProductEntry } from '../../../domain/interfaces/IProductEntriesRepository';
-import { ProductEntrySortField, SortOrder } from '../../../domain/types/sorting';
+import { OrderDirection, ProductEntrySortField } from '../../../domain/types/sorting';
 import { ProductImage } from '../../../../shared/presentation/components/ProductImage';
 
 interface ProductEntriesTableProps {
   entries: ProductEntry[];
   sortField: ProductEntrySortField;
-  sortOrder: SortOrder;
+  sortOrder: OrderDirection;
   onSort: (field: ProductEntrySortField) => void;
   onEdit: (entry: ProductEntry) => void;
   onDelete: (id: number) => void;
 }
 
-const getSortIcon = (currentField: ProductEntrySortField, sortField: ProductEntrySortField, sortOrder: SortOrder) => {
+const getSortIcon = (currentField: ProductEntrySortField, sortField: ProductEntrySortField, sortOrder: OrderDirection) => {
   if (currentField !== sortField) return <FaSort className="ms-1 text-muted" />;
-  return sortOrder === 'asc' ? 
+  return sortOrder === OrderDirection.ASC ? 
     <FaSortUp className="ms-1 text-primary" /> : 
     <FaSortDown className="ms-1 text-primary" />;
 };
@@ -36,52 +36,30 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
           <table className="table table-hover align-middle">
             <thead>
               <tr>
+                <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Product</th>
+                <th style={{ width: '20%', padding: '0.5rem 1rem' }}>Store Brand</th>
+                <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Store Location</th>
                 <th 
-                  onClick={() => onSort('product_name')} 
-                  style={{ cursor: 'pointer', width: '25%', padding: '0.5rem 1rem' }}
-                  className="border-bottom align-middle"
-                >
-                  <div className="d-flex align-items-center">
-                    <span>Product</span>
-                    {getSortIcon('product_name', sortField, sortOrder)}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => onSort('store_brand_name')} 
-                  style={{ cursor: 'pointer', width: '20%', padding: '0.5rem 1rem' }}
-                  className="border-bottom align-middle"
-                >
-                  <div className="d-flex align-items-center">
-                    <span>Store Brand</span>
-                    {getSortIcon('store_brand_name', sortField, sortOrder)}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => onSort('store_address')} 
-                  style={{ cursor: 'pointer', width: '25%', padding: '0.5rem 1rem' }}
-                  className="border-bottom align-middle"
-                >
-                  <div className="d-flex align-items-center">
-                    <span>Store Location</span>
-                    {getSortIcon('store_address', sortField, sortOrder)}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => onSort('price')} 
+                  onClick={() => onSort(ProductEntrySortField.PRICE)} 
                   style={{ cursor: 'pointer', width: '15%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle text-end"
                 >
                   <div className="d-flex align-items-center justify-content-end">
                     <span>Price</span>
-                    {getSortIcon('price', sortField, sortOrder)}
+                    {getSortIcon(ProductEntrySortField.PRICE, sortField, sortOrder)}
                   </div>
                 </th>
                 <th 
-                  style={{ width: '15%', padding: '0.5rem 1rem' }}
+                  onClick={() => onSort(ProductEntrySortField.CREATED_AT)}
+                  style={{ cursor: 'pointer', width: '15%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle text-end"
                 >
-                  Actions
+                  <div className="d-flex align-items-center justify-content-end">
+                    <span>Created At</span>
+                    {getSortIcon(ProductEntrySortField.CREATED_AT, sortField, sortOrder)}
+                  </div>
                 </th>
+                <th style={{ width: '15%', padding: '0.5rem 1rem' }} className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody className="border-top-0">
@@ -100,6 +78,9 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
                   <td style={{ padding: '0.5rem 1rem' }}>{entry.store_location.store_brand.name}</td>
                   <td style={{ padding: '0.5rem 1rem' }}>{entry.store_location.address}</td>
                   <td style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>€{Number(entry.price).toFixed(2)}</td>
+                  <td style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>
+                    {new Date(entry.created_at).toLocaleDateString()}
+                  </td>
                   <td style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>
                     <div className="btn-group">
                       <button
