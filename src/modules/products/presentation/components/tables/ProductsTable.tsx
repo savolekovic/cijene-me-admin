@@ -1,24 +1,32 @@
 import React from 'react';
 import { Product } from '../../../domain/interfaces/IProductsRepository';
 import { ProductImage } from '../../../../shared/presentation/components/ProductImage';
-
-export type SortField = 'id' | 'name' | 'barcode' | 'category_name' | 'created_at';
-type SortOrder = 'asc' | 'desc';
+import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { OrderDirection, ProductSortField } from '../../../domain/types/sorting';
 
 interface ProductsTableProps {
   products: Product[];
-  sortField: SortField;
-  sortOrder: SortOrder;
-  onSort: (field: SortField) => void;
+  sortField: ProductSortField;
+  sortOrder: OrderDirection;
+  onSort: (field: ProductSortField) => void;
   onEdit: (product: Product) => void;
   onDelete: (id: number) => void;
 }
 
 export const ProductsTable: React.FC<ProductsTableProps> = ({
   products,
+  sortField,
+  sortOrder,
+  onSort,
   onEdit,
   onDelete
 }) => {
+  const getSortIcon = (field: ProductSortField) => {
+    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
+    return sortOrder === OrderDirection.ASC ? 
+      <FaSortUp className="ms-1 text-primary" /> : 
+      <FaSortDown className="ms-1 text-primary" />;
+  };
 
   return (
     <>
@@ -29,11 +37,30 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
             <thead>
               <tr>
                 <th style={{ width: '8%', padding: '0.5rem 1rem' }}>Image</th>
-                <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Name</th>
-                <th style={{ width: '20%', padding: '0.5rem 1rem' }}>Barcode</th>
+                <th 
+                  style={{ width: '25%', padding: '0.5rem 1rem', cursor: 'pointer' }}
+                  onClick={() => onSort(ProductSortField.NAME)}
+                >
+                  Name
+                  {getSortIcon(ProductSortField.NAME)}
+                </th>
+                <th 
+                  style={{ width: '20%', padding: '0.5rem 1rem', cursor: 'pointer' }}
+                  onClick={() => onSort(ProductSortField.BARCODE)}
+                >
+                  Barcode
+                  {getSortIcon(ProductSortField.BARCODE)}
+                </th>
                 <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Category</th>
-                <th style={{ width: '12%', textAlign: 'right', padding: '0.5rem 1rem' }}>Created At</th>
-                <th style={{ width: '10%', textAlign: 'right', padding: '0.5rem 1rem' }}>Actions</th>
+                <th 
+                  style={{ width: '12%', padding: '0.5rem 1rem', cursor: 'pointer' }}
+                  className="text-end"
+                  onClick={() => onSort(ProductSortField.CREATED_AT)}
+                >
+                  Created At
+                  {getSortIcon(ProductSortField.CREATED_AT)}
+                </th>
+                <th style={{ width: '10%', padding: '0.5rem 1rem' }} className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody className="border-top-0">

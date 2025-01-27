@@ -5,22 +5,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { Product } from '../../domain/interfaces/IProductsRepository';
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
-import { ProductsTable, SortField } from './tables/ProductsTable';
+import { ProductsTable } from './tables/ProductsTable';
 import { ProductFormModal } from './modals/ProductFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
 import { CategoryDropdownItem } from '../../../categories/domain/interfaces/ICategoriesRepository';
+import { OrderDirection, ProductSortField } from '../../domain/types/sorting';
 
 const productsRepository = new ProductsRepository();
 const categoriesRepository = new CategoriesRepository();
 
-type SortOrder = 'asc' | 'desc';
-
 const ProductsPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const [sortField, setSortField] = useState<SortField>('name');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortField, setSortField] = useState<ProductSortField>(ProductSortField.NAME);
+  const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProductName, setNewProductName] = useState('');
   const [newProductBarcode, setNewProductBarcode] = useState('');
@@ -45,10 +44,10 @@ const ProductsPage: React.FC = () => {
     data: productsResponse,
     isLoading: queryLoading 
   } = useQuery<PaginatedResponse<Product>>({
-    queryKey: ['products', searchQuery, currentPage, pageSize],
+    queryKey: ['products', searchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await productsRepository.getAllProducts(searchQuery, currentPage, pageSize);
+        const data = await productsRepository.getAllProducts(searchQuery, currentPage, pageSize, sortField, sortOrder);
         if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
@@ -118,7 +117,7 @@ const ProductsPage: React.FC = () => {
           name: category!.name
         }
       };
-      queryClient.setQueryData(['products', searchQuery, currentPage, pageSize], (oldData: any) => {
+      queryClient.setQueryData(['products', searchQuery, currentPage, pageSize, sortField, sortOrder], (oldData: any) => {
         if (!oldData) return { total_count: 1, data: [productWithCategory] };
         return {
           total_count: oldData.total_count + 1,
@@ -160,7 +159,7 @@ const ProductsPage: React.FC = () => {
           name: category!.name
         }
       };
-      queryClient.setQueryData(['products', searchQuery, currentPage, pageSize], (oldData: any) => {
+      queryClient.setQueryData(['products', searchQuery, currentPage, pageSize, sortField, sortOrder], (oldData: any) => {
         if (!oldData) return { total_count: oldData.total_count, data: [updatedProduct] };
         return {
           total_count: oldData.total_count,
@@ -182,7 +181,7 @@ const ProductsPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (productId: number) => productsRepository.deleteProduct(productId),
     onSuccess: (_, productId) => {
-      queryClient.setQueryData<PaginatedResponse<Product>>(['products', searchQuery, currentPage, pageSize], (oldData) => {
+      queryClient.setQueryData<PaginatedResponse<Product>>(['products', searchQuery, currentPage, pageSize, sortField, sortOrder], (oldData) => {
         if (!oldData) return { total_count: 0, data: [] };
         return {
           total_count: oldData.total_count - 1,
@@ -267,6 +266,15 @@ const ProductsPage: React.FC = () => {
     deleteMutation.mutate(deleteId);
   };
 
+  const handleSort = (field: ProductSortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
+    } else {
+      setSortField(field);
+      setSortOrder(OrderDirection.ASC);
+    }
+  };
+
   if (queryLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
@@ -317,11 +325,11 @@ const ProductsPage: React.FC = () => {
                   >
                     <FaSort size={14} />
                     <span className="d-none d-sm-inline">
-                      {sortField === 'name' 
-                        ? `Name (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : sortField === 'barcode'
-                        ? `Barcode (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`}
+                      {sortField === ProductSortField.NAME 
+                        ? `Name (${sortOrder === OrderDirection.ASC ? 'A-Z' : 'Z-A'})`
+                        : sortField === ProductSortField.BARCODE
+                        ? `Barcode (${sortOrder === OrderDirection.ASC ? 'A-Z' : 'Z-A'})`
+                        : `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`}
                     </span>
                   </button>
                   {isDropdownOpen && (
@@ -337,8 +345,8 @@ const ProductsPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('name'); 
-                          setSortOrder('asc');
+                          setSortField(ProductSortField.NAME); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -347,8 +355,8 @@ const ProductsPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('name'); 
-                          setSortOrder('desc');
+                          setSortField(ProductSortField.NAME); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -358,8 +366,8 @@ const ProductsPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('barcode'); 
-                          setSortOrder('asc');
+                          setSortField(ProductSortField.BARCODE); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -368,8 +376,8 @@ const ProductsPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('barcode'); 
-                          setSortOrder('desc');
+                          setSortField(ProductSortField.BARCODE); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -379,8 +387,8 @@ const ProductsPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('created_at'); 
-                          setSortOrder('desc');
+                          setSortField(ProductSortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -389,8 +397,8 @@ const ProductsPage: React.FC = () => {
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
                         onClick={() => { 
-                          setSortField('created_at'); 
-                          setSortOrder('asc');
+                          setSortField(ProductSortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -431,10 +439,7 @@ const ProductsPage: React.FC = () => {
             products={products}
             sortField={sortField}
             sortOrder={sortOrder}
-            onSort={(field) => {
-              setSortField(field);
-              setSortOrder('asc');
-            }}
+            onSort={handleSort}
             onEdit={handleEditClick}
             onDelete={setDeleteId}
           />

@@ -2,15 +2,24 @@ import { api, uploadApi, createFormData } from '../../../services/api';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
 import { IProductsRepository, Product, ProductDropdownItem } from '../domain/interfaces/IProductsRepository';
 import axios from 'axios';
+import { OrderDirection, ProductSortField } from '../domain/types/sorting';
 
 export class ProductsRepository implements IProductsRepository {
-  async getAllProducts(search?: string, page: number = 1, per_page: number = 10): Promise<PaginatedResponse<Product>> {
+  async getAllProducts(
+    search?: string, 
+    page: number = 1, 
+    per_page: number = 10,
+    sort_field?: ProductSortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<Product>> {
     try {
       const response = await api.get('/products/', {
         params: {
           search: search || '',
           per_page,
-          page
+          page,
+          order_by: sort_field,
+          order_direction: sort_order
         },
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -41,15 +50,17 @@ export class ProductsRepository implements IProductsRepository {
 
   async createProduct(name: string, barcode: string, image: File, categoryId: number): Promise<Product> {
     try {
-      // Create FormData directly here for better control
       const formData = new FormData();
       formData.append('name', name);
       formData.append('barcode', barcode);
-      formData.append('category_id', String(categoryId));
       formData.append('image', image);
+      formData.append('category_id', categoryId.toString());
 
-      // Make request without setting any headers - let axios handle it
-      const response = await uploadApi.post('/products/', formData);
+      const response = await api.post('/products/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -57,10 +68,8 @@ export class ProductsRepository implements IProductsRepository {
           throw new Error('Unauthorized access. Please login again.');
         } else if (error.response?.status === 403) {
           throw new Error("Don't have permission to create a product");
-        } else if (error.response?.status === 404) {
-          throw new Error("Category not found");
-        } else if (error.response?.status === 400) {
-          throw new Error(error.response.data?.message || "Invalid data provided");
+        } else if (error.response?.status === 409) {
+          throw new Error("Product already exists");
         }
         throw new Error(error.response?.data?.message || 'Failed to create product');
       }
@@ -68,21 +77,21 @@ export class ProductsRepository implements IProductsRepository {
     }
   }
 
-  async updateProduct(productId: number, name: string, barcode: string, image: File | null, categoryId: number): Promise<Product> {
+  async updateProduct(id: number, name: string, barcode: string, image: File | null, categoryId: number): Promise<Product> {
     try {
-      let response;
-      
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('barcode', barcode);
+      formData.append('category_id', categoryId.toString());
       if (image) {
-        const formData = createFormData({ name, barcode, category_id: categoryId }, image);
-        response = await uploadApi.put(`/products/${productId}`, formData);
-      } else {
-        response = await api.put(`/products/${productId}`, {
-          name,
-          barcode,
-          category_id: categoryId
-        });
+        formData.append('image', image);
       }
-      
+
+      const response = await api.put(`/products/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -91,9 +100,9 @@ export class ProductsRepository implements IProductsRepository {
         } else if (error.response?.status === 403) {
           throw new Error("Don't have permission to update product");
         } else if (error.response?.status === 404) {
-          throw new Error("Product or category not found");
-        } else if (error.response?.status === 400) {
-          throw new Error(error.response.data?.message || "Invalid data provided");
+          throw new Error('Product not found');
+        } else if (error.response?.status === 409) {
+          throw new Error('Product already exists');
         }
         throw new Error(error.response?.data?.message || 'Failed to update product');
       }
@@ -101,9 +110,9 @@ export class ProductsRepository implements IProductsRepository {
     }
   }
 
-  async deleteProduct(productId: number): Promise<void> {
+  async deleteProduct(id: number): Promise<void> {
     try {
-      await api.delete(`/products/${productId}`);
+      await api.delete(`/products/${id}`);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
@@ -111,7 +120,7 @@ export class ProductsRepository implements IProductsRepository {
         } else if (error.response?.status === 403) {
           throw new Error("Don't have permission to delete product");
         } else if (error.response?.status === 404) {
-          throw new Error("Product not found");
+          throw new Error('Product not found');
         }
         throw new Error(error.response?.data?.message || 'Failed to delete product');
       }
