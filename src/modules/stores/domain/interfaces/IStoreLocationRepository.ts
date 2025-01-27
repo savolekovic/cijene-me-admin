@@ -1,4 +1,5 @@
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
+import { OrderDirection, StoreLocationSortField } from '../types/sorting';
 
 export interface StoreBrand {
   id: number;
@@ -28,8 +29,8 @@ export interface IStoreLocationRepository {
     search?: string,
     page?: number,
     per_page?: number,
-    sort_field?: string,
-    sort_order?: 'asc' | 'desc'
+    sort_field?: StoreLocationSortField,
+    sort_order?: OrderDirection
   ): Promise<PaginatedResponse<StoreLocation>>;
   getStoreLocationsForDropdown(options?: StoreLocationDropdownOptions): Promise<StoreLocationDropdownItem[]>;
   createStoreLocation(address: string, store_brand_id: number): Promise<StoreLocation>;

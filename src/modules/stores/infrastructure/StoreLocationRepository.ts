@@ -2,14 +2,15 @@ import { api } from '../../../services/api';
 import { IStoreLocationRepository, StoreLocation, StoreLocationDropdownItem, StoreLocationDropdownOptions } from '../domain/interfaces/IStoreLocationRepository';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
 import axios from 'axios';
+import { OrderDirection, StoreLocationSortField } from '../domain/types/sorting';
 
 export class StoreLocationRepository implements IStoreLocationRepository {
   async getAllStoreLocations(
-    search?: string, 
-    page: number = 1, 
+    search?: string,
+    page: number = 1,
     per_page: number = 10,
-    sort_field?: string,
-    sort_order?: 'asc' | 'desc'
+    sort_field?: StoreLocationSortField,
+    sort_order?: OrderDirection
   ): Promise<PaginatedResponse<StoreLocation>> {
     try {
       const response = await api.get('/store-locations/', {
@@ -17,18 +18,16 @@ export class StoreLocationRepository implements IStoreLocationRepository {
           search: search || '',
           page,
           per_page,
-          sort_field,
-          sort_order
-        },
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          order_by: sort_field,
+          order_direction: sort_order
         }
       });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access. Please login again.');
+        }
         throw new Error(error.response?.data?.message || 'Failed to fetch store locations');
       }
       throw new Error('Failed to fetch store locations');
@@ -37,7 +36,7 @@ export class StoreLocationRepository implements IStoreLocationRepository {
 
   async createStoreLocation(address: string, store_brand_id: number): Promise<StoreLocation> {
     try {
-      const response = await api.post('/store-locations/', { address, store_brand_id});
+      const response = await api.post('/store-locations/', { address, store_brand_id });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -45,8 +44,6 @@ export class StoreLocationRepository implements IStoreLocationRepository {
           throw new Error('Unauthorized access. Please login again.');
         } else if (error.response?.status === 403) {
           throw new Error("Don't have permission to create a store location");
-        } else if (error.response?.status === 404) {
-          throw new Error("Store brand not found");
         } else if (error.response?.status === 400) {
           throw new Error("Store location already exists");
         }
@@ -67,7 +64,7 @@ export class StoreLocationRepository implements IStoreLocationRepository {
         } else if (error.response?.status === 403) {
           throw new Error("Don't have permission to update store location");
         } else if (error.response?.status === 404) {
-          throw new Error("Store location or brand not found");
+          throw new Error("Store location not found");
         } else if (error.response?.status === 400) {
           throw new Error("Store location already exists");
         }
@@ -109,9 +106,9 @@ export class StoreLocationRepository implements IStoreLocationRepository {
         if (error.response?.status === 401) {
           throw new Error('Unauthorized access. Please login again.');
         }
-        throw new Error(error.response?.data?.message || 'Failed to fetch store locations');
+        throw new Error(error.response?.data?.message || 'Failed to fetch store locations for dropdown');
       }
-      throw new Error('Failed to fetch store locations');
+      throw new Error('Failed to fetch store locations for dropdown');
     }
   }
 }

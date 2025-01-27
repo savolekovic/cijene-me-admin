@@ -11,8 +11,8 @@ interface StoreLocationFormModalProps {
   isProcessing: boolean;
   address: string;
   setAddress: (address: string) => void;
-  storeBrandId: number;
-  setStoreBrandId: (id: number) => void;
+  storeBrandId: number | null;
+  setStoreBrandId: (id: number | null) => void;
 }
 
 export const StoreLocationFormModal: React.FC<StoreLocationFormModalProps> = ({
@@ -68,7 +68,7 @@ export const StoreLocationFormModal: React.FC<StoreLocationFormModalProps> = ({
                 <select
                   className="form-select"
                   id="storeBrand"
-                  value={storeBrandId}
+                  value={storeBrandId || ''}
                   onChange={handleStoreBrandChange}
                   disabled={isProcessing}
                 >

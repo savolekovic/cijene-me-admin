@@ -1,28 +1,29 @@
 import React from 'react';
-import { FaSort, FaSortDown, FaSortUp, FaStore } from 'react-icons/fa';
+import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { StoreLocation } from '../../../domain/interfaces/IStoreLocationRepository';
+import { OrderDirection, StoreLocationSortField } from '../../../domain/types/sorting';
 
 interface StoreLocationsTableProps {
-  locations: StoreLocation[];
-  sortField: 'address' | 'store_brand_name' | 'created_at';
-  sortOrder: 'asc' | 'desc';
-  onSort: (field: 'address' | 'store_brand_name' | 'created_at') => void;
+  storeLocations: StoreLocation[];
+  sortField: StoreLocationSortField;
+  sortOrder: OrderDirection;
+  onSort: (field: StoreLocationSortField) => void;
   onEdit: (location: StoreLocation) => void;
   onDelete: (id: number) => void;
 }
 
 export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
-  locations,
+  storeLocations,
   sortField,
   sortOrder,
   onSort,
   onEdit,
   onDelete
 }) => {
-  const getSortIcon = (field: string) => {
+  const getSortIcon = (field: StoreLocationSortField) => {
     if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === 'asc' ?
-      <FaSortUp className="ms-1 text-primary" /> :
+    return sortOrder === OrderDirection.ASC ? 
+      <FaSortUp className="ms-1 text-primary" /> : 
       <FaSortDown className="ms-1 text-primary" />;
   };
 
@@ -35,28 +36,28 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
             <thead>
               <tr>
                 <th 
-                  onClick={() => onSort('address')} 
+                  onClick={() => onSort(StoreLocationSortField.ADDRESS)} 
                   style={{ cursor: 'pointer', width: '45%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle"
                 >
                   Address
-                  {getSortIcon('address')}
+                  {getSortIcon(StoreLocationSortField.ADDRESS)}
                 </th>
                 <th 
-                  onClick={() => onSort('store_brand_name')} 
+                  onClick={() => onSort(StoreLocationSortField.STORE_BRAND)} 
                   style={{ cursor: 'pointer', width: '25%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle"
                 >
                   Store Brand
-                  {getSortIcon('store_brand_name')}
+                  {getSortIcon(StoreLocationSortField.STORE_BRAND)}
                 </th>
                 <th 
-                  onClick={() => onSort('created_at')} 
+                  onClick={() => onSort(StoreLocationSortField.CREATED_AT)} 
                   style={{ cursor: 'pointer', width: '15%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle"
                 >
                   Created At
-                  {getSortIcon('created_at')}
+                  {getSortIcon(StoreLocationSortField.CREATED_AT)}
                 </th>
                 <th 
                   style={{ width: '15%', padding: '0.5rem 1rem' }}
@@ -67,14 +68,10 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
               </tr>
             </thead>
             <tbody className="border-top-0">
-              {locations.map((location) => (
+              {storeLocations.map((location) => (
                 <tr key={location.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
-                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">
-                    {location.address}
-                  </td>
-                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">
-                    {location.store_brand.name}
-                  </td>
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">{location.address}</td>
+                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">{location.store_brand.name}</td>
                   <td style={{ padding: '0.5rem 1rem' }} className="align-middle">
                     {new Date(location.created_at).toLocaleDateString()}
                   </td>
@@ -103,16 +100,15 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
 
       {/* Mobile View */}
       <div className="d-md-none">
-        {locations.map((location) => (
+        {storeLocations.map((location) => (
           <div key={location.id} className="card mb-3 ms-2 me-2">
             <div className="card-body">
               <h5 className="card-title mb-2">{location.address}</h5>
-              <div className="d-flex align-items-center mb-2">
-                <FaStore className="text-muted me-2" size={14} />
-                <span>{location.store_brand.name}</span>
-              </div>
-              <div className="mb-3 text-muted small">
-                <i>Added on {new Date(location.created_at).toLocaleDateString()}</i>
+              <div className="mb-3">
+                <div className="text-muted small">Store Brand: {location.store_brand.name}</div>
+                <div className="text-muted small">
+                  <i>Added on {new Date(location.created_at).toLocaleDateString()}</i>
+                </div>
               </div>
               <div className="d-flex gap-2">
                 <button

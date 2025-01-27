@@ -10,55 +10,79 @@ import DeleteConfirmationModal from '../../../shared/presentation/components/mod
 import { StoreLocationFormModal } from './modals/StoreLocationFormModal';
 import { StoreLocationsTable } from './tables/StoreLocationsTable';
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
+import { OrderDirection, StoreLocationSortField } from '../../domain/types/sorting';
 
 const storeLocationRepository = new StoreLocationRepository();
 const storeBrandRepository = new StoreBrandRepository();
 
-type SortField = 'address' | 'store_brand_name' | 'created_at';
-type SortOrder = 'asc' | 'desc';
-
 const StoreLocationsPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const [sortField, setSortField] = useState<SortField>('address');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [sortField, setSortField] = useState<StoreLocationSortField>(StoreLocationSortField.ADDRESS);
+  const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   // Add Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAddress, setNewAddress] = useState('');
-  const [newStoreBrandId, setNewStoreBrandId] = useState<number>(0);
+  const [newStoreBrandId, setNewStoreBrandId] = useState<number | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Edit Modal State
   const [editingLocation, setEditingLocation] = useState<StoreLocation | null>(null);
   const [editAddress, setEditAddress] = useState('');
-  const [editStoreBrandId, setEditStoreBrandId] = useState<number>(0);
+  const [editStoreBrandId, setEditStoreBrandId] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { logout } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Reset to first page when search query or page size changes
+  // Reset to first page when search query changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, pageSize]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.getElementById('sort-dropdown');
+      const button = document.getElementById('sort-button');
+      if (
+        isDropdownOpen && 
+        dropdown && 
+        button && 
+        !dropdown.contains(event.target as Node) && 
+        !button.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDropdownOpen]);
+
   // Query for fetching store locations
   const { 
-    data: locationsResponse = { data: [], total_count: 0 }, 
-    isLoading: isLocationsLoading 
-  } = useQuery<PaginatedResponse<StoreLocation>>({
-    queryKey: ['storeLocations', searchQuery, currentPage, pageSize],
+    data: storeLocationsResponse,
+    isLoading: queryLoading 
+  } = useQuery({
+    queryKey: ['store-locations', searchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        return await storeLocationRepository.getAllStoreLocations(searchQuery, currentPage, pageSize);
+        const data = await storeLocationRepository.getAllStoreLocations(searchQuery, currentPage, pageSize, sortField, sortOrder);
+        if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
+          throw new Error('Invalid data format received from server');
+        }
+        return data;
       } catch (err) {
-        if (err instanceof Error && err.message === 'Unauthorized access. Please login again.') {
+        if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
           navigate('/');
         }
@@ -67,8 +91,8 @@ const StoreLocationsPage: React.FC = () => {
     }
   });
 
-  const locations = locationsResponse.data;
-  const totalCount = locationsResponse.total_count;
+  const storeLocations = storeLocationsResponse?.data || [];
+  const totalCount = storeLocationsResponse?.total_count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
   // Query for fetching store brands (needed for dropdowns)
@@ -104,7 +128,7 @@ const StoreLocationsPage: React.FC = () => {
       });
       setShowAddModal(false);
       setNewAddress('');
-      setNewStoreBrandId(0);
+      setNewStoreBrandId(null);
       setError('');
     },
     onError: (err: Error) => {
@@ -127,7 +151,7 @@ const StoreLocationsPage: React.FC = () => {
       });
       setEditingLocation(null);
       setEditAddress('');
-      setEditStoreBrandId(0);
+      setEditStoreBrandId(null);
       setError('');
     },
     onError: (err: Error) => {
@@ -159,6 +183,7 @@ const StoreLocationsPage: React.FC = () => {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newStoreBrandId) return;
     createMutation.mutate({ address: newAddress, storeBrandId: newStoreBrandId });
   };
 
@@ -170,7 +195,7 @@ const StoreLocationsPage: React.FC = () => {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingLocation) return;
+    if (!editingLocation || !editStoreBrandId) return;
     updateMutation.mutate({ 
       id: editingLocation.id, 
       address: editAddress, 
@@ -182,6 +207,14 @@ const StoreLocationsPage: React.FC = () => {
     if (!deleteId) return;
     deleteMutation.mutate(deleteId);
   };
+
+  if (queryLoading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
@@ -201,7 +234,7 @@ const StoreLocationsPage: React.FC = () => {
           <div className="row g-3 mb-0">
             <div className="col-12 col-sm-8 col-md-6">
               <div className="d-flex gap-2">
-                <div className="flex-grow-1 position-relative">
+                <div className="input-group flex-grow-1">
                   <input
                     type="text"
                     className="form-control"
@@ -215,21 +248,21 @@ const StoreLocationsPage: React.FC = () => {
                     size={14}
                   />
                 </div>
-                <div className="dropdown">
-                  <button
+                <div className="position-relative">
+                  <button 
                     id="sort-button"
                     className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     style={{ whiteSpace: 'nowrap' }}
                   >
                     <FaSort size={14} />
                     <span className="d-none d-sm-inline">
-                      {sortField === 'address'
-                        ? `Address (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : sortField === 'store_brand_name'
-                        ? `Brand (${sortOrder === 'asc' ? 'A-Z' : 'Z-A'})`
-                        : `Date (${sortOrder === 'asc' ? 'Oldest' : 'Newest'})`}
+                      {sortField === StoreLocationSortField.ADDRESS 
+                        ? `Address (${sortOrder === OrderDirection.ASC ? 'A-Z' : 'Z-A'})`
+                        : sortField === StoreLocationSortField.STORE_BRAND
+                        ? `Store Brand (${sortOrder === OrderDirection.ASC ? 'A-Z' : 'Z-A'})`
+                        : `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`}
                     </span>
                   </button>
                   {isDropdownOpen && (
@@ -244,9 +277,9 @@ const StoreLocationsPage: React.FC = () => {
                     >
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => {
-                          setSortField('address');
-                          setSortOrder('asc');
+                        onClick={() => { 
+                          setSortField(StoreLocationSortField.ADDRESS); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -254,9 +287,9 @@ const StoreLocationsPage: React.FC = () => {
                       </button>
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => {
-                          setSortField('address');
-                          setSortOrder('desc');
+                        onClick={() => { 
+                          setSortField(StoreLocationSortField.ADDRESS); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -265,30 +298,30 @@ const StoreLocationsPage: React.FC = () => {
                       <div className="dropdown-divider my-1"></div>
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => {
-                          setSortField('store_brand_name');
-                          setSortOrder('asc');
+                        onClick={() => { 
+                          setSortField(StoreLocationSortField.STORE_BRAND); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
-                        Brand (A-Z)
+                        Store Brand (A-Z)
                       </button>
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => {
-                          setSortField('store_brand_name');
-                          setSortOrder('desc');
+                        onClick={() => { 
+                          setSortField(StoreLocationSortField.STORE_BRAND); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
-                        Brand (Z-A)
+                        Store Brand (Z-A)
                       </button>
                       <div className="dropdown-divider my-1"></div>
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => {
-                          setSortField('created_at');
-                          setSortOrder('desc');
+                        onClick={() => { 
+                          setSortField(StoreLocationSortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -296,9 +329,9 @@ const StoreLocationsPage: React.FC = () => {
                       </button>
                       <button 
                         className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                        onClick={() => {
-                          setSortField('created_at');
-                          setSortOrder('asc');
+                        onClick={() => { 
+                          setSortField(StoreLocationSortField.CREATED_AT); 
+                          setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -310,9 +343,10 @@ const StoreLocationsPage: React.FC = () => {
               </div>
             </div>
             <div className="col-12 col-sm-4 col-md-6">
-              <div className="d-flex justify-content-sm-end align-items-center gap-2">
-                <select
-                  className="form-select w-auto"
+              <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100 gap-2">
+                <select 
+                  className="form-select" 
+                  style={{ width: 'auto' }}
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
                 >
@@ -335,51 +369,54 @@ const StoreLocationsPage: React.FC = () => {
         </div>
         <div className="card-body p-0">
           <StoreLocationsTable
-            locations={locations}
+            storeLocations={storeLocations}
             sortField={sortField}
             sortOrder={sortOrder}
             onSort={(field) => {
-              if (field === sortField) {
-                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+              if (sortField === field) {
+                setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
               } else {
                 setSortField(field);
-                setSortOrder('asc');
+                setSortOrder(OrderDirection.ASC);
               }
             }}
             onEdit={handleEditClick}
             onDelete={setDeleteId}
           />
 
-          {locations.length === 0 && !error && (
+          {storeLocations.length === 0 && !error && (
             <div className="text-center py-5">
               <div className="text-muted mb-2">
                 <FaInbox size={48} />
               </div>
-              <h5 className="fw-normal text-muted">No store locations found</h5>
+              <h5 className="fw-normal text-muted">
+                {searchQuery ? 'No store locations found matching your search.' : 'No store locations found'}
+              </h5>
               <p className="text-muted small mb-0">Create a new store location to get started</p>
             </div>
           )}
         </div>
-      </div>
-
-      <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </button>
-        <span className="text-muted small">
-          Page {currentPage} of {totalPages}
-        </span>
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
+        <div className="card-footer bg-white border-0 py-3">
+          <div className="d-flex justify-content-center align-items-center gap-2">
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="mx-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
 
       <StoreLocationFormModal
