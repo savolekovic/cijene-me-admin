@@ -11,13 +11,15 @@ import { StoreLocationFormModal } from './modals/StoreLocationFormModal';
 import { StoreLocationsTable } from './tables/StoreLocationsTable';
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
 import { OrderDirection, StoreLocationSortField } from '../../../shared/types/sorting';
+import { useDebounceSearch } from '../../../shared/hooks/useDebounceSearch';
+import { TableLoadingSpinner } from '../../../shared/presentation/components/TableLoadingSpinner';
 
 const storeLocationRepository = new StoreLocationRepository();
 const storeBrandRepository = new StoreBrandRepository();
 
 const StoreLocationsPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
   const [sortField, setSortField] = useState<StoreLocationSortField>(StoreLocationSortField.ADDRESS);
   const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,10 +43,10 @@ const StoreLocationsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Reset to first page when search query changes
+  // Reset to first page when search query or page size changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, pageSize]);
+  }, [debouncedSearchQuery, pageSize]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -70,10 +72,10 @@ const StoreLocationsPage: React.FC = () => {
     data: storeLocationsResponse,
     isLoading: queryLoading 
   } = useQuery({
-    queryKey: ['store-locations', searchQuery, currentPage, pageSize, sortField, sortOrder],
+    queryKey: ['store-locations', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await storeLocationRepository.getAllStoreLocations(searchQuery, currentPage, pageSize, sortField, sortOrder);
+        const data = await storeLocationRepository.getAllStoreLocations(debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder);
         if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
@@ -115,7 +117,7 @@ const StoreLocationsPage: React.FC = () => {
     mutationFn: ({ address, storeBrandId }: { address: string; storeBrandId: number }) =>
       storeLocationRepository.createStoreLocation(address, storeBrandId),
     onSuccess: (newLocation) => {
-      queryClient.setQueryData<PaginatedResponse<StoreLocation>>(['storeLocations', searchQuery, currentPage, pageSize], (oldData) => {
+      queryClient.setQueryData<PaginatedResponse<StoreLocation>>(['storeLocations', debouncedSearchQuery, currentPage, pageSize], (oldData) => {
         if (!oldData) return { total_count: 1, data: [newLocation] };
         return {
           ...oldData,
@@ -139,7 +141,7 @@ const StoreLocationsPage: React.FC = () => {
     mutationFn: ({ id, address, storeBrandId }: { id: number; address: string; storeBrandId: number }) =>
       storeLocationRepository.updateStoreLocation(id, address, storeBrandId),
     onSuccess: (updatedLocation) => {
-      queryClient.setQueryData<PaginatedResponse<StoreLocation>>(['storeLocations', searchQuery, currentPage, pageSize], (oldData) => {
+      queryClient.setQueryData<PaginatedResponse<StoreLocation>>(['storeLocations', debouncedSearchQuery, currentPage, pageSize], (oldData) => {
         if (!oldData) return { total_count: 1, data: [updatedLocation] };
         return {
           ...oldData,
@@ -161,7 +163,7 @@ const StoreLocationsPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => storeLocationRepository.deleteStoreLocation(id),
     onSuccess: (_, deletedId) => {
-      queryClient.setQueryData<PaginatedResponse<StoreLocation>>(['storeLocations', searchQuery, currentPage, pageSize], (oldData) => {
+      queryClient.setQueryData<PaginatedResponse<StoreLocation>>(['storeLocations', debouncedSearchQuery, currentPage, pageSize], (oldData) => {
         if (!oldData) return { total_count: 0, data: [] };
         return {
           ...oldData,
@@ -365,32 +367,39 @@ const StoreLocationsPage: React.FC = () => {
           )}
         </div>
         <div className="card-body p-0">
-          <StoreLocationsTable
-            storeLocations={storeLocations}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={(field) => {
-              if (sortField === field) {
-                setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
-              } else {
-                setSortField(field);
-                setSortOrder(OrderDirection.ASC);
-              }
-            }}
-            onEdit={handleEditClick}
-            onDelete={setDeleteId}
-          />
+          {queryLoading ? (
+            <TableLoadingSpinner />
+          ) : (
+            <>
+              <StoreLocationsTable
+                storeLocations={storeLocations}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={(field) => {
+                  if (sortField === field) {
+                    setSortOrder(sortOrder === OrderDirection.ASC ? OrderDirection.DESC : OrderDirection.ASC);
+                  } else {
+                    setSortField(field);
+                    setSortOrder(OrderDirection.ASC);
+                  }
+                }}
+                onEdit={handleEditClick}
+                onDelete={setDeleteId}
+                deletingLocations={deleteMutation.isPending ? [deleteId!] : []}
+              />
 
-          {storeLocations.length === 0 && !error && (
-            <div className="text-center py-5">
-              <div className="text-muted mb-2">
-                <FaInbox size={48} />
-              </div>
-              <h5 className="fw-normal text-muted">
-                {searchQuery ? 'No store locations found matching your search.' : 'No store locations found'}
-              </h5>
-              <p className="text-muted small mb-0">Create a new store location to get started</p>
-            </div>
+              {storeLocations.length === 0 && !error && (
+                <div className="text-center py-5">
+                  <div className="text-muted mb-2">
+                    <FaInbox size={48} />
+                  </div>
+                  <h5 className="fw-normal text-muted">
+                    {searchQuery ? 'No store locations found matching your search.' : 'No store locations found'}
+                  </h5>
+                  <p className="text-muted small mb-0">Create a new store location to get started</p>
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="card-footer bg-white border-0 py-3">

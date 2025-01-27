@@ -10,6 +10,7 @@ interface StoreLocationsTableProps {
   onSort: (field: StoreLocationSortField) => void;
   onEdit: (location: StoreLocation) => void;
   onDelete: (id: number) => void;
+  deletingLocations: number[];
 }
 
 export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
@@ -18,13 +19,12 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
   sortOrder,
   onSort,
   onEdit,
-  onDelete
+  onDelete,
+  deletingLocations
 }) => {
   const getSortIcon = (field: StoreLocationSortField) => {
-    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortOrder === OrderDirection.ASC ? 
-      <FaSortUp className="ms-1 text-primary" /> : 
-      <FaSortDown className="ms-1 text-primary" />;
+    if (field !== sortField) return <FaSort />;
+    return sortOrder === OrderDirection.ASC ? <FaSortUp /> : <FaSortDown />;
   };
 
   return (
@@ -36,46 +36,45 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
             <thead>
               <tr>
                 <th 
-                  onClick={() => onSort(StoreLocationSortField.ADDRESS)} 
-                  style={{ cursor: 'pointer', width: '45%', padding: '0.5rem 1rem' }}
-                  className="border-bottom align-middle"
+                  className="border-0 px-3" 
+                  style={{ cursor: 'pointer', minWidth: '200px' }}
+                  onClick={() => onSort(StoreLocationSortField.ADDRESS)}
                 >
-                  Address
-                  {getSortIcon(StoreLocationSortField.ADDRESS)}
+                  <div className="d-flex align-items-center gap-2">
+                    Address
+                    {getSortIcon(StoreLocationSortField.ADDRESS)}
+                  </div>
                 </th>
                 <th 
-                  onClick={() => onSort(StoreLocationSortField.STORE_BRAND)} 
-                  style={{ cursor: 'pointer', width: '25%', padding: '0.5rem 1rem' }}
-                  className="border-bottom align-middle"
+                  className="border-0 px-3" 
+                  style={{ cursor: 'pointer', minWidth: '200px' }}
+                  onClick={() => onSort(StoreLocationSortField.STORE_BRAND)}
                 >
-                  Store Brand
-                  {getSortIcon(StoreLocationSortField.STORE_BRAND)}
+                  <div className="d-flex align-items-center gap-2">
+                    Store Brand
+                    {getSortIcon(StoreLocationSortField.STORE_BRAND)}
+                  </div>
                 </th>
                 <th 
-                  onClick={() => onSort(StoreLocationSortField.CREATED_AT)} 
-                  style={{ cursor: 'pointer', width: '15%', padding: '0.5rem 1rem' }}
-                  className="border-bottom align-middle"
+                  className="border-0 px-3" 
+                  style={{ cursor: 'pointer', minWidth: '200px' }}
+                  onClick={() => onSort(StoreLocationSortField.CREATED_AT)}
                 >
-                  Created At
-                  {getSortIcon(StoreLocationSortField.CREATED_AT)}
+                  <div className="d-flex align-items-center gap-2">
+                    Created At
+                    {getSortIcon(StoreLocationSortField.CREATED_AT)}
+                  </div>
                 </th>
-                <th 
-                  style={{ width: '15%', padding: '0.5rem 1rem' }}
-                  className="border-bottom align-middle text-end"
-                >
-                  Actions
-                </th>
+                <th className="border-0 px-3 text-end" style={{ width: '120px' }}>Actions</th>
               </tr>
             </thead>
-            <tbody className="border-top-0">
+            <tbody>
               {storeLocations.map((location) => (
-                <tr key={location.id} className="border-bottom" style={{ borderColor: '#f0f0f0' }}>
-                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">{location.address}</td>
-                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">{location.store_brand.name}</td>
-                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle">
-                    {new Date(location.created_at).toLocaleDateString()}
-                  </td>
-                  <td style={{ padding: '0.5rem 1rem' }} className="align-middle text-end">
+                <tr key={location.id}>
+                  <td className="px-3">{location.address}</td>
+                  <td className="px-3">{location.store_brand.name}</td>
+                  <td className="px-3">{new Date(location.created_at).toLocaleDateString()}</td>
+                  <td className="px-3 text-end">
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-primary"
@@ -86,8 +85,9 @@ export const StoreLocationsTable: React.FC<StoreLocationsTableProps> = ({
                       <button
                         className="btn btn-sm btn-outline-danger"
                         onClick={() => onDelete(location.id)}
+                        disabled={deletingLocations.includes(location.id)}
                       >
-                        Delete
+                        {deletingLocations.includes(location.id) ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </td>
