@@ -13,6 +13,8 @@ import DeleteConfirmationModal from '../../../shared/presentation/components/mod
 import { ProductEntryFormModal } from './modals/ProductEntryFormModal';
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
 import { StoreBrandRepository } from '../../../stores/infrastructure/StoreBrandRepository';
+import { useDebounceSearch } from '../../../shared/hooks/useDebounceSearch';
+import { TableLoadingSpinner } from '../../../shared/presentation/components/TableLoadingSpinner';
 
 const productEntriesRepository = new ProductEntriesRepository();
 const productsRepository = new ProductsRepository();
@@ -26,7 +28,7 @@ const ProductEntriesPage: React.FC = () => {
 
   // State
   const [error, setError] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -52,22 +54,17 @@ const ProductEntriesPage: React.FC = () => {
   // Add dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Reset to first page when search query or page size changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, pageSize]);
-
-  // Query for fetching entries with sorting and filtering
+  // Query for fetching product entries
   const { 
     data: productEntriesResponse = { data: [], total_count: 0 },
-    isLoading: isEntriesLoading,
+    isLoading,
     isFetching: isEntriesFetching
   } = useQuery({
-    queryKey: ['productEntries', searchQuery, currentPage, pageSize, sortField, sortOrder],
+    queryKey: ['product-entries', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
         return await productEntriesRepository.getAllProductEntries(
-          searchQuery,
+          debouncedSearchQuery,
           currentPage,
           pageSize,
           sortField,
@@ -178,7 +175,7 @@ const ProductEntriesPage: React.FC = () => {
       
       // Optimistically update the cache
       queryClient.setQueryData<PaginatedResponse<ProductEntry>>(
-        ['productEntries', searchQuery, currentPage, pageSize, sortField, sortOrder],
+        ['productEntries', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
         (oldData) => {
           if (!oldData) return { total_count: 1, data: [newEntry] };
           return {
@@ -216,7 +213,7 @@ const ProductEntriesPage: React.FC = () => {
       
       // Optimistically update the cache
       queryClient.setQueryData<PaginatedResponse<ProductEntry>>(
-        ['productEntries', searchQuery, currentPage, pageSize, sortField, sortOrder],
+        ['productEntries', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
         (oldData) => {
           if (!oldData) return { total_count: 1, data: [updatedEntry] };
           return {
@@ -247,7 +244,7 @@ const ProductEntriesPage: React.FC = () => {
       
       // Optimistically update the cache
       queryClient.setQueryData<PaginatedResponse<ProductEntry>>(
-        ['productEntries', searchQuery, currentPage, pageSize, sortField, sortOrder],
+        ['productEntries', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
         (oldData) => {
           if (!oldData) return { total_count: 0, data: [] };
           return {
@@ -312,7 +309,12 @@ const ProductEntriesPage: React.FC = () => {
     deleteMutation.mutate(deleteId);
   };
 
-  if (isEntriesLoading) {
+  // Reset to first page when search query or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, pageSize]);
+
+  if (isLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
         <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
@@ -448,26 +450,33 @@ const ProductEntriesPage: React.FC = () => {
           )}
         </div>
         <div className="card-body p-0">
-          <ProductEntriesTable
-            entries={productEntriesResponse.data}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            onEdit={handleEditClick}
-            onDelete={setDeleteId}
-          />
-          {productEntriesResponse.data.length === 0 && !error && (
-            <div className="text-center py-5">
-              <div className="text-muted mb-2">
-                <FaInbox size={48} />
-              </div>
-              <h5 className="fw-normal text-muted">
-                {searchQuery ? 'No matching entries found' : 'No entries found'}
-              </h5>
-              <p className="text-muted small mb-0">
-                {searchQuery ? 'Try adjusting your search' : 'Create a new entry to get started'}
-              </p>
-            </div>
+          {isLoading ? (
+            <TableLoadingSpinner />
+          ) : (
+            <>
+              <ProductEntriesTable
+                entries={productEntriesResponse.data}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                onEdit={handleEditClick}
+                onDelete={setDeleteId}
+                deletingEntries={deleteMutation.isPending ? [deleteId!] : []}
+              />
+              {productEntriesResponse.data.length === 0 && !error && (
+                <div className="text-center py-5">
+                  <div className="text-muted mb-2">
+                    <FaInbox size={48} />
+                  </div>
+                  <h5 className="fw-normal text-muted">
+                    {searchQuery ? 'No matching entries found' : 'No entries found'}
+                  </h5>
+                  <p className="text-muted small mb-0">
+                    {searchQuery ? 'Try adjusting your search' : 'Create a new entry to get started'}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
