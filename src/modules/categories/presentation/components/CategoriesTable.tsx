@@ -1,7 +1,7 @@
 import React from 'react';
 import { Category } from '../../domain/interfaces/ICategoriesRepository';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import { OrderDirection, CategorySortField } from './CategoriesPage';
+import { CategorySortField, OrderDirection } from '../../../shared/types/sorting';
 
 interface CategoriesTableProps {
   categories: Category[];

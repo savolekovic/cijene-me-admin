@@ -10,7 +10,7 @@ import DeleteConfirmationModal from '../../../shared/presentation/components/mod
 import { StoreLocationFormModal } from './modals/StoreLocationFormModal';
 import { StoreLocationsTable } from './tables/StoreLocationsTable';
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
-import { OrderDirection, StoreLocationSortField } from '../../domain/types/sorting';
+import { OrderDirection, StoreLocationSortField } from '../../../shared/types/sorting';
 
 const storeLocationRepository = new StoreLocationRepository();
 const storeBrandRepository = new StoreBrandRepository();
@@ -28,17 +28,14 @@ const StoreLocationsPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAddress, setNewAddress] = useState('');
   const [newStoreBrandId, setNewStoreBrandId] = useState<number | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
 
   // Edit Modal State
   const [editingLocation, setEditingLocation] = useState<StoreLocation | null>(null);
   const [editAddress, setEditAddress] = useState('');
   const [editStoreBrandId, setEditStoreBrandId] = useState<number | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
 
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -96,7 +93,7 @@ const StoreLocationsPage: React.FC = () => {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   // Query for fetching store brands (needed for dropdowns)
-  const { data: storeBrands = [], isLoading: isBrandsLoading } = useQuery({
+  const { data: storeBrands = [] } = useQuery({
     queryKey: ['storeBrands', 'dropdown'],
     queryFn: async () => {
       try {

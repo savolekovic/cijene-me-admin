@@ -1,7 +1,7 @@
 import React from 'react';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { StoreLocation } from '../../../domain/interfaces/IStoreLocationRepository';
-import { OrderDirection, StoreLocationSortField } from '../../../domain/types/sorting';
+import { OrderDirection, StoreLocationSortField } from '../../../../shared/types/sorting';
 
 interface StoreLocationsTableProps {
   storeLocations: StoreLocation[];

@@ -8,8 +8,7 @@ import { StoreBrandRepository } from '../../infrastructure/StoreBrandRepository'
 import { StoreBrandFormModal } from './modals/StoreBrandFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { StoreBrandsTable } from './tables/StoreBrandsTable';
-import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
-import { OrderDirection, StoreBrandSortField } from '../../domain/types/sorting';
+import { OrderDirection, StoreBrandSortField } from '../../../shared/types/sorting';
 
 const storeBrandRepository = new StoreBrandRepository();
 
@@ -25,17 +24,14 @@ const StoreBrandPage: React.FC = () => {
   // Add Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newStoreBrandName, setNewStoreBrandName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
 
   // Edit Modal State
   const [editingStoreBrand, setEditingStoreBrand] = useState<StoreBrand | null>(null);
   const [editName, setEditName] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
 
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
+  
   const { logout } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -94,7 +90,7 @@ const StoreBrandPage: React.FC = () => {
   // Mutation for creating store brands
   const createMutation = useMutation({
     mutationFn: (name: string) => storeBrandRepository.createStoreBrand(name),
-    onSuccess: (newStoreBrand) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storeBrands'] });
       setShowAddModal(false);
       setNewStoreBrandName('');
@@ -110,7 +106,7 @@ const StoreBrandPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) => 
       storeBrandRepository.updateStoreBrand(id, name),
-    onSuccess: (updatedBrand) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storeBrands'] });
       setEditingStoreBrand(null);
       setEditName('');
@@ -125,7 +121,7 @@ const StoreBrandPage: React.FC = () => {
   // Mutation for deleting store brands
   const deleteMutation = useMutation({
     mutationFn: (id: number) => storeBrandRepository.deleteStoreBrand(id),
-    onSuccess: (_, deletedId) => {
+    onSuccess: (_) => {
       queryClient.invalidateQueries({ queryKey: ['storeBrands'] });
       setDeleteId(null);
       setError('');

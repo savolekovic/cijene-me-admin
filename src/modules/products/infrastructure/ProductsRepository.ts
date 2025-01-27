@@ -1,8 +1,8 @@
-import { api, uploadApi, createFormData } from '../../../services/api';
+import { api } from '../../../services/api';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
+import { OrderDirection, ProductSortField } from '../../shared/types/sorting';
 import { IProductsRepository, Product, ProductDropdownItem } from '../domain/interfaces/IProductsRepository';
 import axios from 'axios';
-import { OrderDirection, ProductSortField } from '../domain/types/sorting';
 
 export class ProductsRepository implements IProductsRepository {
   async getAllProducts(

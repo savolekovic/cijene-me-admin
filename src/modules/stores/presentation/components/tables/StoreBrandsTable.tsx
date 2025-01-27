@@ -1,7 +1,7 @@
 import React from 'react';
 import { StoreBrand } from '../../../domain/interfaces/IStoreBrandRepository';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import { OrderDirection, StoreBrandSortField } from '../../../domain/types/sorting';
+import { OrderDirection, StoreBrandSortField } from '../../../../shared/types/sorting';
 
 interface StoreBrandsTableProps {
   storeBrands: StoreBrand[];

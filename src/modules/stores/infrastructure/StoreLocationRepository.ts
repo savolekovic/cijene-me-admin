@@ -2,7 +2,7 @@ import { api } from '../../../services/api';
 import { IStoreLocationRepository, StoreLocation, StoreLocationDropdownItem, StoreLocationDropdownOptions } from '../domain/interfaces/IStoreLocationRepository';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
 import axios from 'axios';
-import { OrderDirection, StoreLocationSortField } from '../domain/types/sorting';
+import { OrderDirection, StoreLocationSortField } from '../../shared/types/sorting';
 
 export class StoreLocationRepository implements IStoreLocationRepository {
   async getAllStoreLocations(

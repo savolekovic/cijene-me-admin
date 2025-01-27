@@ -2,7 +2,7 @@ import React from 'react';
 import { Product } from '../../../domain/interfaces/IProductsRepository';
 import { ProductImage } from '../../../../shared/presentation/components/ProductImage';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import { OrderDirection, ProductSortField } from '../../../domain/types/sorting';
+import { OrderDirection, ProductSortField } from '../../../../shared/types/sorting';
 
 interface ProductsTableProps {
   products: Product[];

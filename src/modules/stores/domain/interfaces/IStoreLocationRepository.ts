@@ -1,5 +1,5 @@
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
-import { OrderDirection, StoreLocationSortField } from '../types/sorting';
+import { OrderDirection, StoreLocationSortField } from '../../../shared/types/sorting';
 
 export interface StoreBrand {
   id: number;

@@ -1,7 +1,7 @@
 import { api } from '../../../services/api';
 import { IProductEntriesRepository, ProductEntry } from '../domain/interfaces/IProductEntriesRepository';
-import { OrderDirection, ProductEntrySortField } from '../domain/types/sorting';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
+import { OrderDirection, ProductEntrySortField } from '../../shared/types/sorting';
 
 export class ProductEntriesRepository implements IProductEntriesRepository {
   async getAllProductEntries(

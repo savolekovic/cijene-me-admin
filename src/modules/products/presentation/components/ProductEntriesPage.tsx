@@ -7,7 +7,7 @@ import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository'
 import { ProductEntriesRepository } from '../../infrastructure/ProductEntriesRepository';
 import { ProductsRepository } from '../../infrastructure/ProductsRepository';
 import { StoreLocationRepository } from '../../../stores/infrastructure/StoreLocationRepository';
-import { ProductEntrySortField, SortOrder, OrderDirection } from '../../domain/types/sorting';
+import { ProductEntrySortField, OrderDirection } from '../../../shared/types/sorting';
 import { ProductEntriesTable } from './tables/ProductEntriesTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import { ProductEntryFormModal } from './modals/ProductEntryFormModal';

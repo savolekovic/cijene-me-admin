@@ -1,5 +1,5 @@
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
-import { OrderDirection, CategorySortField } from '../../presentation/components/CategoriesPage';
+import { OrderDirection, CategorySortField } from '../../../shared/types/sorting';
 
 export interface CategoryDropdownItem {
   id: number;

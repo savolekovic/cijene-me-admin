@@ -2,7 +2,7 @@ import { api } from '../../../services/api';
 import { ICategoriesRepository, Category, CategoryDropdownItem } from '../domain/interfaces/ICategoriesRepository';
 import axios from 'axios';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
-import { OrderDirection, CategorySortField } from '../presentation/components/CategoriesPage';
+import { CategorySortField, OrderDirection } from '../../shared/types/sorting';
 
 export class CategoriesRepository implements ICategoriesRepository {
   async getAllCategories(

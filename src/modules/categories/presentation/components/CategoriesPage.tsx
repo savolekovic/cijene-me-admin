@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FaPlus, FaSpinner, FaSearch, FaInbox, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaPlus, FaSpinner, FaSearch, FaInbox, FaSort } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { Category } from '../../domain/interfaces/ICategoriesRepository';
@@ -8,18 +8,9 @@ import { CategoriesRepository } from '../../infrastructure/CategoriesRepository'
 import { CategoriesTable } from './CategoriesTable';
 import { CategoryFormModal } from './modals/CategoryFormModal';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
+import { OrderDirection, CategorySortField } from '../../../shared/types/sorting';
 
 const categoriesRepository = new CategoriesRepository();
-
-export enum OrderDirection {
-  ASC = 'asc',
-  DESC = 'desc'
-}
-
-export enum CategorySortField {
-  NAME = 'name',
-  CREATED_AT = 'created_at'
-}
 
 const CategoriesPage: React.FC = () => {
   const [error, setError] = useState<string>('');
@@ -41,7 +32,6 @@ const CategoriesPage: React.FC = () => {
 
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string>('');
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);

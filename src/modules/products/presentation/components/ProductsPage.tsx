@@ -11,7 +11,7 @@ import DeleteConfirmationModal from '../../../shared/presentation/components/mod
 import { CategoriesRepository } from '../../../categories/infrastructure/CategoriesRepository';
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
 import { CategoryDropdownItem } from '../../../categories/domain/interfaces/ICategoriesRepository';
-import { OrderDirection, ProductSortField } from '../../domain/types/sorting';
+import { OrderDirection, ProductSortField } from '../../../shared/types/sorting';
 
 const productsRepository = new ProductsRepository();
 const categoriesRepository = new CategoriesRepository();

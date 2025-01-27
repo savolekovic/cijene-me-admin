@@ -1,8 +1,8 @@
 import { api } from '../../../services/api';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
+import { OrderDirection, StoreBrandSortField } from '../../shared/types/sorting';
 import { IStoreBrandRepository, StoreBrand, StoreBrandDropdownItem } from '../domain/interfaces/IStoreBrandRepository';
 import axios from 'axios';
-import { OrderDirection, StoreBrandSortField } from '../domain/types/sorting';
 
 export class StoreBrandRepository implements IStoreBrandRepository {
   async getAllStoreBrands(
