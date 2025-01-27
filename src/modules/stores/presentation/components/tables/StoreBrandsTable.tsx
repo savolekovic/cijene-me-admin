@@ -1,11 +1,13 @@
 import React from 'react';
 import { StoreBrand } from '../../../domain/interfaces/IStoreBrandRepository';
+import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { OrderDirection, StoreBrandSortField } from '../../../domain/types/sorting';
 
 interface StoreBrandsTableProps {
   storeBrands: StoreBrand[];
-  sortField: 'name' | 'created_at';
-  sortOrder: 'asc' | 'desc';
-  onSort: (field: 'name' | 'created_at') => void;
+  sortField: StoreBrandSortField;
+  sortOrder: OrderDirection;
+  onSort: (field: StoreBrandSortField) => void;
   onEdit: (brand: StoreBrand) => void;
   onDelete: (id: number) => void;
 }
@@ -18,6 +20,13 @@ export const StoreBrandsTable: React.FC<StoreBrandsTableProps> = ({
   onEdit,
   onDelete
 }) => {
+  const getSortIcon = (field: StoreBrandSortField) => {
+    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
+    return sortOrder === OrderDirection.ASC ? 
+      <FaSortUp className="ms-1 text-primary" /> : 
+      <FaSortDown className="ms-1 text-primary" />;
+  };
+
   return (
     <>
       {/* Desktop View */}
@@ -27,24 +36,20 @@ export const StoreBrandsTable: React.FC<StoreBrandsTableProps> = ({
             <thead>
               <tr>
                 <th 
-                  onClick={() => onSort('name')} 
+                  onClick={() => onSort(StoreBrandSortField.NAME)} 
                   style={{ cursor: 'pointer', width: '60%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle"
                 >
                   Name
-                  {sortField === 'name' && (
-                    <i className={`ms-1 fa fa-sort-${sortOrder}`} />
-                  )}
+                  {getSortIcon(StoreBrandSortField.NAME)}
                 </th>
                 <th 
-                  onClick={() => onSort('created_at')} 
+                  onClick={() => onSort(StoreBrandSortField.CREATED_AT)} 
                   style={{ cursor: 'pointer', width: '25%', padding: '0.5rem 1rem' }}
                   className="border-bottom align-middle"
                 >
                   Created At
-                  {sortField === 'created_at' && (
-                    <i className={`ms-1 fa fa-sort-${sortOrder}`} />
-                  )}
+                  {getSortIcon(StoreBrandSortField.CREATED_AT)}
                 </th>
                 <th 
                   style={{ width: '15%', padding: '0.5rem 1rem' }}

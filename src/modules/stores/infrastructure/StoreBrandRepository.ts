@@ -2,15 +2,24 @@ import { api } from '../../../services/api';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
 import { IStoreBrandRepository, StoreBrand, StoreBrandDropdownItem } from '../domain/interfaces/IStoreBrandRepository';
 import axios from 'axios';
+import { OrderDirection, StoreBrandSortField } from '../domain/types/sorting';
 
 export class StoreBrandRepository implements IStoreBrandRepository {
-  async getAllStoreBrands(search?: string, page: number = 1, per_page: number = 10): Promise<PaginatedResponse<StoreBrand>> {
+  async getAllStoreBrands(
+    search?: string, 
+    page: number = 1, 
+    per_page: number = 10,
+    sort_field?: StoreBrandSortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<StoreBrand>> {
     try {
       const response = await api.get('/store-brands/', {
         params: {
           search: search || '',
           page,
-          per_page
+          per_page,
+          order_by: sort_field,
+          order_direction: sort_order
         },
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',

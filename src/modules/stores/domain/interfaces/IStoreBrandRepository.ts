@@ -1,4 +1,5 @@
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
+import { OrderDirection, StoreBrandSortField } from '../types/sorting';
 
 export interface StoreBrand {
   id: number;
@@ -12,7 +13,13 @@ export interface StoreBrandDropdownItem {
 }
 
 export interface IStoreBrandRepository {
-  getAllStoreBrands(search?: string, page?: number, per_page?: number): Promise<PaginatedResponse<StoreBrand>>;
+  getAllStoreBrands(
+    search?: string, 
+    page?: number, 
+    per_page?: number,
+    sort_field?: StoreBrandSortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<StoreBrand>>;
   getStoreBrandsForDropdown(): Promise<StoreBrandDropdownItem[]>;
   createStoreBrand(name: string): Promise<StoreBrand>;
   updateStoreBrand(id: number, name: string): Promise<StoreBrand>;
