@@ -2,54 +2,58 @@ import React from 'react';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
-  title?: string;
-  message?: string;
-  itemName?: string;
+  title: string;
+  message: string;
   isDeleting: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  error?: string;
 }
 
-const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
+export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   isOpen,
-  title = 'Confirm Delete',
-  message = 'Are you sure you want to delete this item?',
-  itemName,
+  title,
+  message,
   isDeleting,
   onClose,
   onConfirm,
+  error
 }) => {
   if (!isOpen) return null;
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog">
+      <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">{title}</h5>
-            <button 
-              type="button" 
-              className="btn-close" 
+            <button
+              type="button"
+              className="btn-close"
               onClick={onClose}
               disabled={isDeleting}
             />
           </div>
           <div className="modal-body">
-            <p>{itemName ? `${message.replace('this item', itemName)}` : message}</p>
-            <p className="text-muted">This action cannot be undone.</p>
+            <p className="mb-0">{message}</p>
+            {error && (
+              <div className="alert alert-danger mt-3 mb-0">
+                {error}
+              </div>
+            )}
           </div>
           <div className="modal-footer">
-            <button 
-              type="button" 
-              className="btn btn-secondary" 
+            <button
+              type="button"
+              className="btn btn-secondary"
               onClick={onClose}
               disabled={isDeleting}
             >
               Cancel
             </button>
-            <button 
-              type="button" 
-              className="btn btn-danger" 
+            <button
+              type="button"
+              className="btn btn-danger"
               onClick={onConfirm}
               disabled={isDeleting}
             >
@@ -67,6 +71,6 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
       </div>
     </div>
   );
-};
+}
 
 export default DeleteConfirmationModal; 

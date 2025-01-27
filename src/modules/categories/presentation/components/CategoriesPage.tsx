@@ -42,6 +42,7 @@ const CategoriesPage: React.FC = () => {
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string>('');
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -84,14 +85,8 @@ const CategoriesPage: React.FC = () => {
   // Mutation for creating categories
   const createMutation = useMutation<Category, Error, { name: string }>({
     mutationFn: ({ name }) => categoriesRepository.createCategory(name),
-    onSuccess: (newCategory) => {
-      queryClient.setQueryData(['categories', searchQuery, currentPage, pageSize], (oldData: any) => {
-        if (!oldData) return { total_count: 1, data: [newCategory] };
-        return {
-          total_count: oldData.total_count + 1,
-          data: [...oldData.data, newCategory]
-        };
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       setShowAddModal(false);
     },
     onError: (err) => {
@@ -104,15 +99,7 @@ const CategoriesPage: React.FC = () => {
   const updateMutation = useMutation<Category, Error, { id: number; name: string }>({
     mutationFn: ({ id, name }) => categoriesRepository.updateCategory(id, name),
     onSuccess: (updatedCategory) => {
-      queryClient.setQueryData(['categories', searchQuery, currentPage, pageSize], (oldData: any) => {
-        if (!oldData) return { total_count: oldData.total_count, data: [updatedCategory] };
-        return {
-          total_count: oldData.total_count,
-          data: oldData.data.map((category: Category) => 
-            category.id === updatedCategory.id ? updatedCategory : category
-          )
-        };
-      });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       setEditingCategory(null);
     },
     onError: (err) => {
@@ -124,19 +111,13 @@ const CategoriesPage: React.FC = () => {
   // Mutation for deleting categories
   const deleteMutation = useMutation<void, Error, number>({
     mutationFn: (categoryId: number) => categoriesRepository.deleteCategory(categoryId),
-    onSuccess: (_, categoryId) => {
-      queryClient.setQueryData(['categories', searchQuery, currentPage, pageSize], (oldData: any) => {
-        if (!oldData) return { total_count: 0, data: [] };
-        return {
-          total_count: oldData.total_count - 1,
-          data: oldData.data.filter((category: Category) => category.id !== categoryId)
-        };
-      });
+    onSuccess: (_) => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       setDeleteId(null);
+      setDeleteError('');
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : 'Failed to delete category');
-      setTimeout(() => setError(''), 3000);
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete category');
     }
   });
 
@@ -207,15 +188,7 @@ const CategoriesPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return;
-    
-    setIsDeleting(true);
-    try {
-      await deleteMutation.mutateAsync(deleteId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete category');
-    } finally {
-      setIsDeleting(false);
-    }
+    deleteMutation.mutate(deleteId);
   };
 
   if (queryLoading) {
@@ -424,9 +397,13 @@ const CategoriesPage: React.FC = () => {
         isOpen={!!deleteId}
         title="Delete Category"
         message="Are you sure you want to delete this category?"
-        isDeleting={isDeleting}
-        onClose={() => setDeleteId(null)}
+        isDeleting={deleteMutation.isPending}
+        onClose={() => {
+          setDeleteId(null);
+          setDeleteError('');
+        }}
         onConfirm={handleDeleteConfirm}
+        error={deleteError}
       />
     </div>
   );
