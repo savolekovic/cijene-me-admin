@@ -1,5 +1,5 @@
 import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
-import { OrderDirection, UserSortField } from '../../presentation/components/UsersPage';
+import { OrderDirection, UserSortField } from '../../../shared/types/sorting';
 
 export interface User {
   id: number;

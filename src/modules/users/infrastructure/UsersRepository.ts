@@ -2,7 +2,7 @@ import { api } from '../../../services/api';
 import { IUsersRepository, User } from '../domain/interfaces/IUsersRepository';
 import axios from 'axios';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
-import { OrderDirection, UserSortField } from '../presentation/components/UsersPage';
+import { OrderDirection, UserSortField } from '../../shared/types/sorting';
 
 export class UsersRepository implements IUsersRepository {
   async getAllUsers(

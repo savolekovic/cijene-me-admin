@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FaSearch, FaSort, FaInbox, FaPlus, FaSortUp, FaSortDown, FaSpinner } from 'react-icons/fa';
+import { FaSearch, FaSort, FaInbox } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../../domain/interfaces/IUsersRepository';
 import { UsersRepository } from '../../infrastructure/UsersRepository';
@@ -8,23 +8,15 @@ import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import UsersTable from './tables/UsersTable';
 import DeleteConfirmationModal from '../../../shared/presentation/components/modals/DeleteConfirmationModal';
 import ChangeRoleModal from './modals/ChangeRoleModal';
+import { OrderDirection, UserSortField } from '../../../shared/types/sorting';
+import { useDebounceSearch } from '../../../shared/hooks/useDebounceSearch';
+import { TableLoadingSpinner } from '../../../shared/presentation/components/TableLoadingSpinner';
 
 const usersRepository = new UsersRepository();
 
-export enum OrderDirection {
-  ASC = 'asc',
-  DESC = 'desc'
-}
-
-export enum UserSortField {
-  FULL_NAME = 'full_name',
-  EMAIL = 'email',
-  CREATED_AT = 'created_at'
-}
-
 const UsersPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
   const [sortField, setSortField] = useState<UserSortField>(UserSortField.FULL_NAME);
   const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
@@ -42,10 +34,10 @@ const UsersPage: React.FC = () => {
     data: usersResponse,
     isLoading 
   } = useQuery({
-    queryKey: ['users', searchQuery, currentPage, pageSize, sortField, sortOrder],
+    queryKey: ['users', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        const data = await usersRepository.getAllUsers(searchQuery, currentPage, pageSize, sortField, sortOrder);
+        const data = await usersRepository.getAllUsers(debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder);
         if (!data || typeof data.total_count !== 'number' || !Array.isArray(data.data)) {
           throw new Error('Invalid data format received from server');
         }
@@ -67,13 +59,13 @@ const UsersPage: React.FC = () => {
   // Reset to first page when search query or page size changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, pageSize]);
+  }, [debouncedSearchQuery, pageSize]);
 
   // Mutation for deleting users
   const deleteMutation = useMutation<{ message: string }, Error, number>({
     mutationFn: (userId: number) => usersRepository.deleteUser(userId),
     onSuccess: (_, userId) => {
-      queryClient.setQueryData(['users', searchQuery, currentPage, pageSize], (oldData: any) => {
+      queryClient.setQueryData(['users', debouncedSearchQuery, currentPage, pageSize], (oldData: any) => {
         if (!oldData) return { total_count: 0, data: [] };
         return {
           total_count: oldData.total_count - 1,
@@ -93,7 +85,7 @@ const UsersPage: React.FC = () => {
     mutationFn: ({ userId, newRole }) => 
       usersRepository.changeRole(userId, newRole),
     onSuccess: (updatedUser) => {
-      queryClient.setQueryData(['users', searchQuery, currentPage, pageSize], (oldData: any) => {
+      queryClient.setQueryData(['users', debouncedSearchQuery, currentPage, pageSize], (oldData: any) => {
         if (!oldData) return { total_count: oldData.total_count, data: [updatedUser] };
         return {
           total_count: oldData.total_count,
@@ -154,14 +146,6 @@ const UsersPage: React.FC = () => {
     const newRole = changeRoleUser.role.toLowerCase() === 'moderator' ? 'user' : 'moderator';
     changeRoleMutation.mutate({ userId: changeRoleUser.id, newRole });
   };
-
-  if (isLoading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <FaSpinner className="spinner-border" style={{ width: '3rem', height: '3rem' }} />
-      </div>
-    );
-  }
 
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
@@ -309,29 +293,35 @@ const UsersPage: React.FC = () => {
             </div>
           )}
         </div>
-        <div className="card-body p-0">
-          <UsersTable 
-            users={users}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            onDelete={handleDeleteClick}
-            onChangeRole={handleChangeRoleClick}
-            deletingUsers={deleteMutation.isPending ? [deleteUserId!] : []}
-          />
+        
+        {isLoading ? (
+          <TableLoadingSpinner />
+        ) : (
+          <>
+            <UsersTable 
+              users={users}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              onDelete={handleDeleteClick}
+              onChangeRole={handleChangeRoleClick}
+              deletingUsers={deleteMutation.isPending ? [deleteUserId!] : []}
+            />
 
-          {users.length === 0 && !error && (
-            <div className="text-center py-5">
-              <div className="text-muted mb-2">
-                <FaInbox size={48} />
+            {users.length === 0 && !error && (
+              <div className="text-center py-5">
+                <div className="text-muted mb-2">
+                  <FaInbox size={48} />
+                </div>
+                <h5 className="fw-normal text-muted">
+                  {searchQuery ? 'No users found matching your search.' : 'No users found.'}
+                </h5>
+                <p className="text-muted small mb-0">The user list is empty</p>
               </div>
-              <h5 className="fw-normal text-muted">
-                {searchQuery ? 'No users found matching your search.' : 'No users found.'}
-              </h5>
-              <p className="text-muted small mb-0">The user list is empty</p>
-            </div>
-          )}
-        </div>
+            )}
+          </>
+        )}
+        
         <div className="card-footer bg-white border-0 py-3">
           <div className="d-flex justify-content-center align-items-center gap-2">
             <button

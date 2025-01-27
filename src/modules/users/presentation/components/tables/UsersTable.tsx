@@ -1,7 +1,7 @@
 import React from 'react';
 import { User } from '../../../domain/interfaces/IUsersRepository';
 import { FaSort, FaSortDown, FaSortUp } from 'react-icons/fa';
-import { OrderDirection, UserSortField } from '../UsersPage';
+import { OrderDirection, UserSortField } from '../../../../shared/types/sorting';
 
 interface UsersTableProps {
   users: User[];
