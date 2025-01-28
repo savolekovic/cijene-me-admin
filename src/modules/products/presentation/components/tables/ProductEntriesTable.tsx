@@ -99,35 +99,34 @@ export const ProductEntriesTable: React.FC<ProductEntriesTableProps> = ({
       {/* Mobile View */}
       <div className="d-md-none">
         {entries.map((entry) => (
-          <div key={entry.id} className="card mb-3 mx-3">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                  <h6 className="mb-1">{entry.store_location.store_brand.name}</h6>
-                  <div className="text-muted small">{entry.store_location.address}</div>
-                </div>
-                <div className="text-end">
-                  <div className="h5 mb-1">€{Number(entry.price).toFixed(2)}</div>
-                  <div className="text-muted small">
-                    {new Date(entry.created_at).toLocaleDateString()}
-                  </div>
+          <div key={entry.id} className="border-bottom px-3 py-2">
+            <div className="d-flex justify-content-between align-items-start mb-1">
+              <div>
+                <div className="fw-medium">{entry.store_location.store_brand.name}</div>
+                <div className="text-muted small">{entry.store_location.address}</div>
+              </div>
+              <div className="text-end">
+                <div className="fw-bold text-primary">€{Number(entry.price).toFixed(2)}</div>
+                <div className="text-muted small">
+                  {new Date(entry.created_at).toLocaleDateString()}
                 </div>
               </div>
-              <div className="d-flex gap-2">
-                <button
-                  className="btn btn-sm btn-outline-primary flex-grow-1"
-                  onClick={() => onEdit(entry)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-sm btn-outline-danger flex-grow-1"
-                  onClick={() => onDelete(entry.id)}
-                  disabled={deletingEntries.includes(entry.id)}
-                >
-                  {deletingEntries.includes(entry.id) ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
+            </div>
+            <div className="d-flex gap-2 mt-2">
+              <button
+                className="btn btn-sm btn-link text-primary p-0 flex-grow-1"
+                onClick={() => onEdit(entry)}
+              >
+                Edit
+              </button>
+              <div className="vr"></div>
+              <button
+                className="btn btn-sm btn-link text-danger p-0 flex-grow-1"
+                onClick={() => onDelete(entry.id)}
+                disabled={deletingEntries.includes(entry.id)}
+              >
+                {deletingEntries.includes(entry.id) ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         ))}

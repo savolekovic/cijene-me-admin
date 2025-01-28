@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { setAuthToken } from '../../../../services/api';
 import { AuthRepository } from '../../infrastructure/AuthRepository';
+import { useNavigate } from 'react-router-dom';
 
 // Create a single instance of AuthRepository
 const authRepository = new AuthRepository();
@@ -26,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const [accessToken, setAccessToken] = useState<string | null>(initialAuth.accessToken || null);
   const [refreshToken, setRefreshToken] = useState<string | null>(initialAuth.refreshToken || null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Store both tokens together in auth object
@@ -38,6 +40,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthToken(null);
     }
   }, [accessToken, refreshToken]);
+
+  useEffect(() => {
+    const handleAuthError = () => {
+      logout();
+      navigate('/');
+    };
+
+    window.addEventListener('auth-error', handleAuthError);
+    return () => window.removeEventListener('auth-error', handleAuthError);
+  }, [navigate]);
 
   const login = (data: AuthTokens) => {
     setAccessToken(data.access_token);

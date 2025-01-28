@@ -329,11 +329,12 @@ const ProductEntriesPage: React.FC = () => {
   }, [debouncedSearchQuery, pageSize]);
 
   return (
-    <div className="container-fluid px-3 px-sm-4 py-4">
-      <div className="d-flex flex-column gap-4">
+    <div className="container-fluid px-3 px-sm-4 pt-2">
+      <div className="d-flex flex-column gap-3">
         {/* Product Header */}
-        <div className="d-flex flex-column">
-          <div className="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          {/* Desktop View */}
+          <div className="d-none d-md-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center gap-3">
               <button
                 className="btn btn-link text-secondary p-0"
@@ -355,13 +356,44 @@ const ProductEntriesPage: React.FC = () => {
             </div>
             <button 
               className="btn btn-primary d-inline-flex align-items-center gap-2"
-              onClick={() => {
-                setShowAddModal(true);
-              }}
+              onClick={() => setShowAddModal(true)}
             >
               <FaPlus size={14} />
               <span>Add Entry</span>
             </button>
+          </div>
+
+          {/* Mobile View */}
+          <div className="d-md-none">
+            <div className="d-flex justify-content-between align-items-start mb-2">
+              <div className="d-flex gap-2">
+                <button
+                  className="btn btn-link text-secondary p-0 d-flex align-items-center"
+                  onClick={() => navigate('/dashboard/products')}
+                  style={{ height: '24px' }}
+                >
+                  <FaArrowLeft size={16} />
+                </button>
+                <div>
+                  <h1 className="h5 mb-0">{product?.name || 'Loading...'}</h1>
+                  <p className="text-muted small mb-0">Price History</p>
+                </div>
+              </div>
+              <button 
+                className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+                onClick={() => setShowAddModal(true)}
+              >
+                <FaPlus size={12} />
+                <span>Add</span>
+              </button>
+            </div>
+            <div className="mb-2">
+              <ProductImage 
+                imageUrl={product?.image_url || null} 
+                name={product?.name || ''} 
+                size="small"
+              />
+            </div>
           </div>
         </div>
 
@@ -371,7 +403,8 @@ const ProductEntriesPage: React.FC = () => {
             <div className="row g-3 mb-0">
               <div className="col-12 col-sm-8 col-md-6">
                 <div className="d-flex gap-2">
-                  <div className="input-group flex-grow-1">
+                  {/* Desktop Search */}
+                  <div className="d-none d-md-flex flex-grow-1 input-group">
                     <input
                       type="text"
                       className="form-control"
@@ -385,7 +418,23 @@ const ProductEntriesPage: React.FC = () => {
                       size={14}
                     />
                   </div>
-                  <div className="position-relative">
+
+                  {/* Mobile Search */}
+                  <div className="d-flex d-md-none flex-grow-1 input-group">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="Search location..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <span className="input-group-text bg-white px-2">
+                      <FaSearch className="text-muted" size={14} />
+                    </span>
+                  </div>
+
+                  {/* Desktop Sort Button */}
+                  <div className="d-none d-md-block position-relative">
                     <button 
                       id="sort-button"
                       className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
@@ -394,72 +443,87 @@ const ProductEntriesPage: React.FC = () => {
                       style={{ whiteSpace: 'nowrap' }}
                     >
                       <FaSort size={14} />
-                      <span className="d-none d-sm-inline">
+                      <span>
                         {sortField === ProductEntrySortField.PRICE 
                           ? `Price (${sortOrder === OrderDirection.ASC ? '↑' : '↓'})` 
                           : `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`}
                       </span>
                     </button>
-                    {isDropdownOpen && (
-                      <div 
-                        id="sort-dropdown"
-                        className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
-                        style={{ 
-                          zIndex: 1000, 
-                          minWidth: '160px',
-                          border: '1px solid rgba(0,0,0,.15)'
+                  </div>
+
+                  {/* Mobile Sort Button */}
+                  <div className="d-md-none position-relative">
+                    <button 
+                      id="sort-button-mobile"
+                      className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    >
+                      <FaSort size={12} />
+                      <span>Sort</span>
+                    </button>
+                  </div>
+
+                  {isDropdownOpen && (
+                    <div 
+                      id="sort-dropdown"
+                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
+                      style={{ 
+                        zIndex: 1000, 
+                        minWidth: '160px',
+                        border: '1px solid rgba(0,0,0,.15)',
+                        top: '100%'
+                      }}
+                    >
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField(ProductEntrySortField.PRICE);
+                          setSortOrder(OrderDirection.ASC);
+                          setIsDropdownOpen(false);
                         }}
                       >
-                        <button 
-                          className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                          onClick={() => { 
-                            setSortField(ProductEntrySortField.PRICE);
-                            setSortOrder(OrderDirection.ASC);
-                            setIsDropdownOpen(false);
-                          }}
-                        >
-                          Price (low to high)
-                        </button>
-                        <button 
-                          className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                          onClick={() => { 
-                            setSortField(ProductEntrySortField.PRICE);
-                            setSortOrder(OrderDirection.DESC);
-                            setIsDropdownOpen(false);
-                          }}
-                        >
-                          Price (high to low)
-                        </button>
-                        <div className="dropdown-divider my-1"></div>
-                        <button 
-                          className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                          onClick={() => { 
-                            setSortField(ProductEntrySortField.CREATED_AT);
-                            setSortOrder(OrderDirection.DESC);
-                            setIsDropdownOpen(false);
-                          }}
-                        >
-                          Date (Newest)
-                        </button>
-                        <button 
-                          className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
-                          onClick={() => { 
-                            setSortField(ProductEntrySortField.CREATED_AT);
-                            setSortOrder(OrderDirection.ASC);
-                            setIsDropdownOpen(false);
-                          }}
-                        >
-                          Date (Oldest)
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                        Price (low to high)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField(ProductEntrySortField.PRICE);
+                          setSortOrder(OrderDirection.DESC);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Price (high to low)
+                      </button>
+                      <div className="dropdown-divider my-1"></div>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField(ProductEntrySortField.CREATED_AT);
+                          setSortOrder(OrderDirection.DESC);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Newest)
+                      </button>
+                      <button 
+                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        onClick={() => { 
+                          setSortField(ProductEntrySortField.CREATED_AT);
+                          setSortOrder(OrderDirection.ASC);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Date (Oldest)
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="col-12 col-sm-4 col-md-6">
-                <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100 gap-2">
+                <div className="d-flex justify-content-between justify-content-sm-end align-items-center gap-2">
                   <select 
-                    className="form-select" 
+                    className="form-select form-select-sm d-md-none" 
                     style={{ width: 'auto' }}
                     value={pageSize}
                     onChange={(e) => setPageSize(Number(e.target.value))}
@@ -468,8 +532,21 @@ const ProductEntriesPage: React.FC = () => {
                     <option value={10}>10 per page</option>
                     <option value={20}>20 per page</option>
                   </select>
-                  <span className="badge bg-secondary">
+                  <select 
+                    className="form-select d-none d-md-block" 
+                    style={{ width: 'auto' }}
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                  >
+                    <option value={5}>5 per page</option>
+                    <option value={10}>10 per page</option>
+                    <option value={20}>20 per page</option>
+                  </select>
+                  <span className="badge bg-secondary d-none d-md-inline">
                     Total Entries: {productEntriesResponse.total_count}
+                  </span>
+                  <span className="badge bg-secondary d-md-none">
+                    {productEntriesResponse.total_count}
                   </span>
                 </div>
               </div>

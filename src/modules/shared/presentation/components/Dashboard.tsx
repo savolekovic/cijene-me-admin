@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { FaUsers, FaList, FaBox, FaStore, FaMapMarkerAlt, FaSignOutAlt, FaBars } from 'react-icons/fa';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 
@@ -7,6 +7,9 @@ const Dashboard: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isProductEntriesPage = location.pathname.includes('/products/') && location.pathname.includes('/entries');
 
   // Add window resize handler
   useEffect(() => {
@@ -32,6 +35,106 @@ const Dashboard: React.FC = () => {
       setIsSidebarOpen(false);
     }
   };
+
+  if (isProductEntriesPage) {
+    return (
+      <div className="d-flex h-100">
+        {/* Sidebar - Hidden on mobile for product entries */}
+        <div className="d-none d-md-block">
+          <div className="sidebar bg-dark open" 
+               style={{ 
+                 width: '250px', 
+                 minHeight: '100vh',
+                 position: 'fixed',
+                 left: 0,
+                 zIndex: 1030
+               }}>
+            <div className="d-flex flex-column p-3 text-white h-100">
+              <div className="d-flex align-items-center mb-3">
+                <span className="fs-4">Admin Panel</span>
+              </div>
+              <hr />
+              <ul className="nav nav-pills flex-column mb-auto">
+                <li className="nav-item mb-1">
+                  <NavLink 
+                    to="/dashboard/users" 
+                    className={({ isActive }) => 
+                      `nav-link ${isActive ? 'active-nav-link' : 'text-white'}`
+                    }
+                  >
+                    <FaUsers className="me-2" />
+                    Users
+                  </NavLink>
+                </li>
+                <li className="nav-item mb-1">
+                  <NavLink 
+                    to="/dashboard/categories" 
+                    className={({ isActive }) => 
+                      `nav-link ${isActive ? 'active-nav-link' : 'text-white'}`
+                    }
+                  >
+                    <FaList className="me-2" />
+                    Categories
+                  </NavLink>
+                </li>
+                <li className="nav-item mb-1">
+                  <NavLink 
+                    to="/dashboard/products" 
+                    className={({ isActive }) => 
+                      `nav-link ${isActive ? 'active-nav-link' : 'text-white'}`
+                    }
+                  >
+                    <FaBox className="me-2" />
+                    Products
+                  </NavLink>
+                </li>
+                <li className="nav-item mb-1">
+                  <NavLink 
+                    to="/dashboard/store-brands" 
+                    className={({ isActive }) => 
+                      `nav-link ${isActive ? 'active-nav-link' : 'text-white'}`
+                    }
+                  >
+                    <FaStore className="me-2" />
+                    Store Brands
+                  </NavLink>
+                </li>
+                <li className="nav-item mb-1">
+                  <NavLink 
+                    to="/dashboard/store-locations" 
+                    className={({ isActive }) => 
+                      `nav-link ${isActive ? 'active-nav-link' : 'text-white'}`
+                    }
+                  >
+                    <FaMapMarkerAlt className="me-2" />
+                    Store Locations
+                  </NavLink>
+                </li>
+              </ul>
+              <hr />
+              <button
+                className="btn btn-outline-light w-100"
+                onClick={handleLogout}
+              >
+                <FaSignOutAlt className="me-2" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-grow-1" style={{ 
+          marginLeft: window.innerWidth >= 768 ? '250px' : '0',
+          width: '100%'
+        }}>
+          <main>
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="d-flex h-100">

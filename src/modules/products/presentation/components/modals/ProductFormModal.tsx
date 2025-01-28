@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaCamera, FaImage } from 'react-icons/fa';
 import { CategoryDropdownItem } from '../../../../categories/domain/interfaces/ICategoriesRepository';
 import { validateProductName, validateImageInput, validateEANBarcode } from '../../../../shared/utils/validation';
 
@@ -181,39 +181,24 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   
                   {/* Mobile view */}
                   <div className="d-flex d-md-none gap-2">
-                    <input
-                      type="file"
-                      className="d-none"
-                      accept="image/jpeg,image/png,image/gif"
-                      capture="environment"
-                      onChange={handleFileChange}
-                      disabled={isProcessing}
-                      id="cameraInput"
-                    />
-                    <input
-                      type="file"
-                      className="d-none"
-                      accept="image/jpeg,image/png,image/gif"
-                      onChange={handleFileChange}
-                      disabled={isProcessing}
-                      id="galleryInput"
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-primary flex-grow-1"
-                      onClick={() => document.getElementById('cameraInput')?.click()}
-                      disabled={isProcessing}
-                    >
-                      Take Photo
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary flex-grow-1"
-                      onClick={() => document.getElementById('galleryInput')?.click()}
-                      disabled={isProcessing}
-                    >
-                      Choose from Gallery
-                    </button>
+                    <div className="d-flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm flex-grow-1 small"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <FaCamera className="me-1" />
+                        Photo
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm flex-grow-1 small"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <FaImage className="me-1" />
+                        Gallery
+                      </button>
+                    </div>
                     <button
                       type="button"
                       className="btn btn-outline-danger"

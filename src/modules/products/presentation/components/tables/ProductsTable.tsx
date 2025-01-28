@@ -139,7 +139,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
               <div className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-outline-secondary flex-grow-1"
-                  onClick={() => navigate(`/products/${product.id}/entries`)}
+                  onClick={() => navigate(`/dashboard/products/${product.id}/entries`)}
                 >
                   View Entries
                 </button>
