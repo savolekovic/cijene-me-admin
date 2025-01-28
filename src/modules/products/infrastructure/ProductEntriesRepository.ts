@@ -14,30 +14,31 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
     sort_order?: OrderDirection
   ): Promise<PaginatedResponse<ProductEntry>> {
     try {
-      const response = await api.get('/product-entries', {
-        params: {
-          search: search || '',
-          product_id,
-          page,
-          page_size,
-          order_by: sort_field,
-          order_direction: sort_order
-        },
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
+      const params = {
+        search: search || '',
+        product_id,
+        page,
+        page_size,
+        order_by: sort_field,
+        order_direction: sort_order
+      };
+      
+      console.log('Request params:', params);
+      
+      const response = await api.get('/product-entries', { params });
+      
+      console.log('Response data:', response.data);
+      
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        console.error('API Error:', error.response?.data);
         if (error.response?.status === 401) {
-          throw new Error('Unauthorized access. Please login again.');
+          throw new Error('Unauthorized');
         }
         throw new Error(error.response?.data?.message || 'Failed to fetch product entries');
       }
-      throw new Error('Failed to fetch product entries');
+      throw error;
     }
   }
 
@@ -56,11 +57,11 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          throw new Error('Unauthorized access. Please login again.');
+          throw new Error('Unauthorized');
         }
         throw new Error(error.response?.data?.message || 'Failed to create product entry');
       }
-      throw new Error('Failed to create product entry');
+      throw error;
     }
   }
 
@@ -80,11 +81,11 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          throw new Error('Unauthorized access. Please login again.');
+          throw new Error('Unauthorized');
         }
         throw new Error(error.response?.data?.message || 'Failed to update product entry');
       }
-      throw new Error('Failed to update product entry');
+      throw error;
     }
   }
 
@@ -94,11 +95,11 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          throw new Error('Unauthorized access. Please login again.');
+          throw new Error('Unauthorized');
         }
         throw new Error(error.response?.data?.message || 'Failed to delete product entry');
       }
-      throw new Error('Failed to delete product entry');
+      throw error;
     }
   }
 } 
