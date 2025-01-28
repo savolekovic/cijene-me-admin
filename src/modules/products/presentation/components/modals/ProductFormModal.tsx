@@ -158,23 +158,77 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
               <div className="mb-3">
                 <label className="form-label">Product Image</label>
-                <div className="d-flex gap-2">
-                  <input
-                    type="file"
-                    className={`form-control ${imageError ? 'is-invalid' : ''}`}
-                    accept="image/jpeg,image/png,image/gif"
-                    onChange={handleFileChange}
-                    disabled={isProcessing}
-                    ref={fileInputRef}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger"
-                    onClick={handleRemoveImage}
-                    disabled={isProcessing || !image}
-                  >
-                    Remove
-                  </button>
+                <div className="d-flex flex-column gap-2">
+                  {/* Desktop view */}
+                  <div className="d-none d-md-flex gap-2">
+                    <input
+                      type="file"
+                      className={`form-control ${imageError ? 'is-invalid' : ''}`}
+                      accept="image/jpeg,image/png,image/gif"
+                      onChange={handleFileChange}
+                      disabled={isProcessing}
+                      ref={fileInputRef}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger"
+                      onClick={handleRemoveImage}
+                      disabled={isProcessing || !image}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  
+                  {/* Mobile view */}
+                  <div className="d-flex d-md-none gap-2">
+                    <input
+                      type="file"
+                      className="d-none"
+                      accept="image/jpeg,image/png,image/gif"
+                      capture="environment"
+                      onChange={handleFileChange}
+                      disabled={isProcessing}
+                      id="cameraInput"
+                    />
+                    <input
+                      type="file"
+                      className="d-none"
+                      accept="image/jpeg,image/png,image/gif"
+                      onChange={handleFileChange}
+                      disabled={isProcessing}
+                      id="galleryInput"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary flex-grow-1"
+                      onClick={() => document.getElementById('cameraInput')?.click()}
+                      disabled={isProcessing}
+                    >
+                      Take Photo
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary flex-grow-1"
+                      onClick={() => document.getElementById('galleryInput')?.click()}
+                      disabled={isProcessing}
+                    >
+                      Choose from Gallery
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger"
+                      onClick={handleRemoveImage}
+                      disabled={isProcessing || !image}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  
+                  {image && (
+                    <div className="text-muted small">
+                      Selected: {image.name}
+                    </div>
+                  )}
                 </div>
                 {imageError && (
                   <div className="invalid-feedback d-block">
