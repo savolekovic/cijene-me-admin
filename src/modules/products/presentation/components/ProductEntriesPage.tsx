@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaInbox, FaSearch, FaSpinner, FaSort } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { FaPlus, FaInbox, FaSearch, FaSpinner, FaSort, FaArrowLeft } from 'react-icons/fa';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 import { ProductEntry } from '../../domain/interfaces/IProductEntriesRepository';
@@ -15,6 +15,7 @@ import { PaginatedResponse } from '../../../shared/types/PaginatedResponse';
 import { StoreBrandRepository } from '../../../stores/infrastructure/StoreBrandRepository';
 import { useDebounceSearch } from '../../../shared/hooks/useDebounceSearch';
 import { TableLoadingSpinner } from '../../../shared/presentation/components/TableLoadingSpinner';
+import { ProductImage } from '../../../shared/presentation/components/ProductImage';
 
 const productEntriesRepository = new ProductEntriesRepository();
 const productsRepository = new ProductsRepository();
@@ -23,6 +24,7 @@ const storeBrandRepository = new StoreBrandRepository();
 
 const ProductEntriesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { productId } = useParams<{ productId: string }>();
   const { logout } = useAuth();
   const queryClient = useQueryClient();
 
@@ -54,22 +56,12 @@ const ProductEntriesPage: React.FC = () => {
   // Add dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Query for fetching product entries
-  const { 
-    data: productEntriesResponse = { data: [], total_count: 0 },
-    isLoading: queryLoading,
-    isFetching: isEntriesFetching
-  } = useQuery({
-    queryKey: ['product-entries', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
+  // Query for product details
+  const { data: product } = useQuery({
+    queryKey: ['product', productId],
     queryFn: async () => {
       try {
-        return await productEntriesRepository.getAllProductEntries(
-          debouncedSearchQuery,
-          currentPage,
-          pageSize,
-          sortField,
-          sortOrder
-        );
+        return await productsRepository.getProduct(Number(productId));
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();
@@ -77,7 +69,36 @@ const ProductEntriesPage: React.FC = () => {
         }
         throw err;
       }
-    }
+    },
+    enabled: !!productId
+  });
+
+  // Query for product entries
+  const { 
+    data: productEntriesResponse = { data: [], total_count: 0 },
+    isLoading: queryLoading,
+    isFetching: isEntriesFetching
+  } = useQuery<PaginatedResponse<ProductEntry>>({
+    queryKey: ['productEntries', productId, debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
+    queryFn: async () => {
+      try {
+        return await productEntriesRepository.getAllProductEntries({
+          search: debouncedSearchQuery,
+          product_id: Number(productId),
+          page: currentPage,
+          page_size: pageSize,
+          sort_field: sortField,
+          sort_order: sortOrder
+        });
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('Unauthorized')) {
+          logout();
+          navigate('/');
+        }
+        throw err;
+      }
+    },
+    enabled: !!productId
   });
 
   // Query for products dropdown (only when needed)
@@ -316,65 +337,119 @@ const ProductEntriesPage: React.FC = () => {
 
   return (
     <div className="container-fluid px-3 px-sm-4 py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">Product Entries</h1>
-        <button 
-          className="btn btn-primary d-inline-flex align-items-center gap-2"
-          onClick={() => setShowAddModal(true)}
-        >
-          <FaPlus size={14} />
-          <span>Add Entry</span>
-        </button>
-      </div>
+      <div className="d-flex flex-column gap-4">
+        {/* Product Header */}
+        <div className="d-flex flex-column">
+          <div className="d-flex align-items-center gap-3 mb-3">
+            <button
+              className="btn btn-link text-secondary p-0"
+              onClick={() => navigate('/dashboard/products')}
+            >
+              <FaArrowLeft size={20} />
+            </button>
+            <div className="d-flex align-items-center gap-3">
+              <ProductImage 
+                imageUrl={product?.image_url || null} 
+                name={product?.name || ''} 
+                size="large" 
+              />
+              <div>
+                <h1 className="h3 mb-1">{product?.name || 'Loading...'}</h1>
+                <p className="text-muted mb-0">Price History</p>
+              </div>
+            </div>
+          </div>
 
-      <div className="card shadow-sm">
-        <div className="card-header border-0 bg-white py-2">
-          <div className="row g-3 mb-0">
-            <div className="col-12 col-sm-8 col-md-6">
-              <div className="d-flex gap-2">
-                <div className="flex-grow-1 position-relative">
+          {/* Price Statistics */}
+          <div className="row g-3">
+            <div className="col-12 col-sm-6 col-md-3">
+              <div className="card border-0 shadow-sm">
+                <div className="card-body">
+                  <h6 className="text-muted mb-1">Latest Price</h6>
+                  <h4 className="mb-0">
+                    {productEntriesResponse.data[0]?.price 
+                      ? `€${Number(productEntriesResponse.data[0].price).toFixed(2)}` 
+                      : '—'}
+                  </h4>
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-6 col-md-3">
+              <div className="card border-0 shadow-sm">
+                <div className="card-body">
+                  <h6 className="text-muted mb-1">Lowest Price</h6>
+                  <h4 className="mb-0">
+                    {productEntriesResponse.data.length > 0
+                      ? `€${Math.min(...productEntriesResponse.data.map(entry => Number(entry.price))).toFixed(2)}`
+                      : '—'}
+                  </h4>
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-6 col-md-3">
+              <div className="card border-0 shadow-sm">
+                <div className="card-body">
+                  <h6 className="text-muted mb-1">Highest Price</h6>
+                  <h4 className="mb-0">
+                    {productEntriesResponse.data.length > 0
+                      ? `€${Math.max(...productEntriesResponse.data.map(entry => Number(entry.price))).toFixed(2)}`
+                      : '—'}
+                  </h4>
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-6 col-md-3">
+              <div className="card border-0 shadow-sm">
+                <div className="card-body">
+                  <h6 className="text-muted mb-1">Average Price</h6>
+                  <h4 className="mb-0">
+                    {productEntriesResponse.data.length > 0
+                      ? `€${(productEntriesResponse.data.reduce((sum, entry) => sum + Number(entry.price), 0) / productEntriesResponse.data.length).toFixed(2)}`
+                      : '—'}
+                  </h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Table Card */}
+        <div className="card shadow-sm">
+          <div className="card-header border-0 bg-white py-3">
+            <div className="row g-3 align-items-center">
+              <div className="col-12 col-sm-8 col-lg-4">
+                <div className="input-group">
+                  <span className="input-group-text bg-white border-end-0">
+                    <FaSearch className="text-muted" />
+                  </span>
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="Search entries..."
+                    className="form-control border-start-0"
+                    placeholder="Search by store location..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                  <FaSearch 
-                    className="position-absolute text-muted" 
-                    style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}
-                    size={14}
-                  />
                 </div>
+              </div>
+              <div className="col-12 col-sm-4 col-lg-3">
                 <div className="position-relative">
                   <button 
-                    id="sort-button"
-                    className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
-                    type="button"
+                    className="btn btn-outline-secondary d-flex align-items-center gap-2 w-100"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    style={{ whiteSpace: 'nowrap' }}
                   >
                     <FaSort size={14} />
-                    <span className="d-none d-sm-inline">
+                    <span>
                       {sortField === ProductEntrySortField.PRICE 
-                        ? `Price (${sortOrder === OrderDirection.ASC ? '↑' : '↓'})`
+                        ? `Price (${sortOrder === OrderDirection.ASC ? '↑' : '↓'})` 
                         : `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`}
                     </span>
                   </button>
                   {isDropdownOpen && (
-                    <div 
-                      id="sort-dropdown"
-                      className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
-                      style={{ 
-                        zIndex: 1000, 
-                        minWidth: '160px',
-                        border: '1px solid rgba(0,0,0,.15)'
-                      }}
-                    >
+                    <div className="position-absolute start-0 mt-1 w-100 py-1 bg-white rounded shadow-sm" style={{ zIndex: 1000 }}>
                       <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        className="dropdown-item px-3 py-1 text-start w-100"
                         onClick={() => { 
-                          setSortField(ProductEntrySortField.PRICE); 
+                          setSortField(ProductEntrySortField.PRICE);
                           setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
@@ -382,145 +457,155 @@ const ProductEntriesPage: React.FC = () => {
                         Price (low to high)
                       </button>
                       <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        className="dropdown-item px-3 py-1 text-start w-100"
                         onClick={() => { 
-                          setSortField(ProductEntrySortField.PRICE); 
+                          setSortField(ProductEntrySortField.PRICE);
                           setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
                         Price (high to low)
                       </button>
-                      <div className="dropdown-divider my-1"></div>
+                      <div className="dropdown-divider"></div>
                       <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        className="dropdown-item px-3 py-1 text-start w-100"
                         onClick={() => { 
-                          setSortField(ProductEntrySortField.CREATED_AT); 
+                          setSortField(ProductEntrySortField.CREATED_AT);
                           setSortOrder(OrderDirection.DESC);
                           setIsDropdownOpen(false);
                         }}
                       >
-                        Date (Newest)
+                        Date (newest)
                       </button>
                       <button 
-                        className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                        className="dropdown-item px-3 py-1 text-start w-100"
                         onClick={() => { 
-                          setSortField(ProductEntrySortField.CREATED_AT); 
+                          setSortField(ProductEntrySortField.CREATED_AT);
                           setSortOrder(OrderDirection.ASC);
                           setIsDropdownOpen(false);
                         }}
                       >
-                        Date (Oldest)
+                        Date (oldest)
                       </button>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-            <div className="col-12 col-sm-4 col-md-6">
-              <div className="d-flex justify-content-sm-end align-items-center gap-2">
-                <select
-                  className="form-select w-auto"
-                  value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                >
-                  <option value={5}>5 per page</option>
-                  <option value={10}>10 per page</option>
-                  <option value={20}>20 per page</option>
-                </select>
-                <span className="badge bg-secondary">
-                  Total Entries: {productEntriesResponse.total_count}
-                </span>
+              <div className="col-12 col-lg-5">
+                <div className="d-flex justify-content-start justify-content-lg-end align-items-center gap-3">
+                  <select 
+                    className="form-select w-auto"
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                  >
+                    <option value={5}>5 per page</option>
+                    <option value={10}>10 per page</option>
+                    <option value={20}>20 per page</option>
+                  </select>
+                  <button 
+                    className="btn btn-primary d-inline-flex align-items-center gap-2"
+                    onClick={() => {
+                      setNewEntryProductId(Number(productId));
+                      setShowAddModal(true);
+                    }}
+                  >
+                    <FaPlus size={14} />
+                    <span>Add Entry</span>
+                  </button>
+                </div>
               </div>
             </div>
+            {error && (
+              <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                {error}
+                <button type="button" className="btn-close" onClick={() => setError('')} />
+              </div>
+            )}
           </div>
-          {error && (
-            <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
-              {error}
-              <button type="button" className="btn-close" onClick={() => setError('')} />
-            </div>
-          )}
-        </div>
-        <div className="card-body p-0">
-          {queryLoading ? (
-            <TableLoadingSpinner />
-          ) : (
-            <>
-              <ProductEntriesTable
-                entries={productEntriesResponse.data}
-                sortField={sortField}
-                sortOrder={sortOrder}
-                onSort={handleSort}
-                onEdit={handleEditClick}
-                onDelete={setDeleteId}
-                deletingEntries={deleteMutation.isPending ? [deleteId!] : []}
-              />
-              {productEntriesResponse.data.length === 0 && !error && (
-                <div className="text-center py-5">
-                  <div className="text-muted mb-2">
-                    <FaInbox size={48} />
+
+          <div className="card-body p-0">
+            {queryLoading ? (
+              <TableLoadingSpinner />
+            ) : (
+              <>
+                <ProductEntriesTable
+                  entries={productEntriesResponse.data}
+                  sortField={sortField}
+                  sortOrder={sortOrder}
+                  onSort={handleSort}
+                  onEdit={handleEditClick}
+                  onDelete={setDeleteId}
+                  deletingEntries={deleteMutation.isPending ? [deleteId!] : []}
+                />
+                {productEntriesResponse.data.length === 0 && !error && (
+                  <div className="text-center py-5">
+                    <div className="text-muted mb-2">
+                      <FaInbox size={48} />
+                    </div>
+                    <h5 className="fw-normal text-muted">
+                      {searchQuery ? 'No matching entries found' : 'No price entries yet'}
+                    </h5>
+                    <p className="text-muted small mb-0">
+                      {searchQuery ? 'Try adjusting your search' : 'Add your first price entry to start tracking'}
+                    </p>
                   </div>
-                  <h5 className="fw-normal text-muted">
-                    {searchQuery ? 'No matching entries found' : 'No entries found'}
-                  </h5>
-                  <p className="text-muted small mb-0">
-                    {searchQuery ? 'Try adjusting your search' : 'Create a new entry to get started'}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Pagination */}
+        <div className="d-flex justify-content-center align-items-center gap-2">
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1 || isEntriesFetching}
+          >
+            Previous
+          </button>
+          <span className="text-muted small">
+            Page {currentPage} of {Math.ceil(productEntriesResponse.total_count / pageSize)}
+          </span>
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => setCurrentPage(prev => Math.min(Math.ceil(productEntriesResponse.total_count / pageSize), prev + 1))}
+            disabled={currentPage === Math.ceil(productEntriesResponse.total_count / pageSize) || isEntriesFetching}
+          >
+            Next
+          </button>
+        </div>
+
+        {/* Modals */}
+        <ProductEntryFormModal
+          isOpen={showAddModal || !!editingEntry}
+          onClose={() => editingEntry ? setEditingEntry(null) : setShowAddModal(false)}
+          onSubmit={editingEntry ? handleEditSubmit : handleCreateEntry}
+          products={products}
+          storeBrands={storeBrands}
+          storeLocations={storeLocations}
+          isLoadingDropdownData={isLoadingDropdownData}
+          isProcessing={editingEntry ? updateMutation.isPending : createMutation.isPending}
+          productId={editingEntry ? editProductId : newEntryProductId}
+          setProductId={editingEntry ? setEditProductId : setNewEntryProductId}
+          storeBrandId={editingEntry ? editStoreBrandId : newEntryStoreBrandId}
+          setStoreBrandId={editingEntry ? setEditStoreBrandId : setNewEntryStoreBrandId}
+          locationId={editingEntry ? editStoreLocationId : newEntryStoreLocationId}
+          setLocationId={editingEntry ? setEditStoreLocationId : setNewEntryStoreLocationId}
+          price={editingEntry ? editPrice : newEntryPrice}
+          setPrice={editingEntry ? setEditPrice : setNewEntryPrice}
+          mode={editingEntry ? 'edit' : 'add'}
+        />
+
+        <DeleteConfirmationModal
+          isOpen={!!deleteId}
+          title="Delete Price Entry"
+          message="Are you sure you want to delete this price entry?"
+          isDeleting={deleteMutation.isPending}
+          onClose={() => setDeleteId(null)}
+          onConfirm={handleDeleteConfirm}
+        />
       </div>
-
-      <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          disabled={currentPage === 1 || isEntriesFetching}
-        >
-          Previous
-        </button>
-        <span className="text-muted small">
-          Page {currentPage} of {Math.ceil(productEntriesResponse.total_count / pageSize)}
-        </span>
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => setCurrentPage(prev => Math.min(Math.ceil(productEntriesResponse.total_count / pageSize), prev + 1))}
-          disabled={currentPage === Math.ceil(productEntriesResponse.total_count / pageSize) || isEntriesFetching}
-        >
-          Next
-        </button>
-      </div>
-
-      <ProductEntryFormModal
-        isOpen={showAddModal || !!editingEntry}
-        onClose={() => editingEntry ? setEditingEntry(null) : setShowAddModal(false)}
-        onSubmit={editingEntry ? handleEditSubmit : handleCreateEntry}
-        products={products}
-        storeBrands={storeBrands}
-        storeLocations={storeLocations}
-        isLoadingDropdownData={isLoadingDropdownData}
-        isProcessing={editingEntry ? updateMutation.isPending : createMutation.isPending}
-        productId={editingEntry ? editProductId : newEntryProductId}
-        setProductId={editingEntry ? setEditProductId : setNewEntryProductId}
-        storeBrandId={editingEntry ? editStoreBrandId : newEntryStoreBrandId}
-        setStoreBrandId={editingEntry ? setEditStoreBrandId : setNewEntryStoreBrandId}
-        locationId={editingEntry ? editStoreLocationId : newEntryStoreLocationId}
-        setLocationId={editingEntry ? setEditStoreLocationId : setNewEntryStoreLocationId}
-        price={editingEntry ? editPrice : newEntryPrice}
-        setPrice={editingEntry ? setEditPrice : setNewEntryPrice}
-        mode={editingEntry ? 'edit' : 'add'}
-      />
-
-      <DeleteConfirmationModal
-        isOpen={!!deleteId}
-        title="Delete Product Entry"
-        message="Are you sure you want to delete this product entry?"
-        isDeleting={deleteMutation.isPending}
-        onClose={() => setDeleteId(null)}
-        onConfirm={handleDeleteConfirm}
-      />
     </div>
   );
 };

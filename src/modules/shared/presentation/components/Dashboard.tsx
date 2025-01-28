@@ -95,18 +95,6 @@ const Dashboard: React.FC = () => {
             </li>
             <li className="nav-item mb-1">
               <NavLink 
-                to="product-entries" 
-                className={({ isActive }) => 
-                  `nav-link ${isActive ? 'active-nav-link' : 'text-white'}`
-                }
-                onClick={handleNavClick}
-              >
-                <FaReceipt className="me-2" />
-                Product Entries
-              </NavLink>
-            </li>
-            <li className="nav-item mb-1">
-              <NavLink 
                 to="store-brands" 
                 className={({ isActive }) => 
                   `nav-link ${isActive ? 'active-nav-link' : 'text-white'}`

@@ -3,6 +3,7 @@ import { Product } from '../../../domain/interfaces/IProductsRepository';
 import { ProductImage } from '../../../../shared/presentation/components/ProductImage';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { OrderDirection, ProductSortField } from '../../../../shared/types/sorting';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductsTableProps {
   products: Product[];
@@ -23,6 +24,8 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   onDelete,
   deletingProducts
 }) => {
+  const navigate = useNavigate();
+  
   const getSortIcon = (field: ProductSortField) => {
     if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
     return sortOrder === OrderDirection.ASC ? 
@@ -86,6 +89,12 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                   <td className="text-end" style={{ padding: '0.5rem 1rem' }}>
                     <div className="btn-group">
                       <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => navigate(`/dashboard/products/${product.id}/entries`)}
+                      >
+                        View Entries
+                      </button>
+                      <button
                         className="btn btn-sm btn-outline-primary"
                         onClick={() => onEdit(product)}
                       >
@@ -110,7 +119,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
       {/* Mobile View */}
       <div className="d-md-none">
         {products.map((product) => (
-          <div key={product.id} className="card mb-3 ms-2 me-2">
+          <div key={product.id} className="card mb-3 mx-3">
             <div className="card-body">
               <div className="d-flex gap-3">
                 <div style={{ width: '80px', height: '80px', flexShrink: 0 }}>
@@ -128,6 +137,12 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                 <strong>Created:</strong> {new Date(product.created_at).toLocaleDateString()}
               </div>
               <div className="d-flex gap-2">
+                <button
+                  className="btn btn-sm btn-outline-secondary flex-grow-1"
+                  onClick={() => navigate(`/dashboard/products/${product.id}/entries`)}
+                >
+                  View Entries
+                </button>
                 <button
                   className="btn btn-sm btn-outline-primary flex-grow-1"
                   onClick={() => onEdit(product)}

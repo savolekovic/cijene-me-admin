@@ -32,4 +32,5 @@ export interface IProductsRepository {
   createProduct(name: string, barcode: string, image: File, categoryId: number): Promise<Product>;
   updateProduct(id: number, name: string, barcode: string, image: File | null, categoryId: number): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
+  getProduct(id: number): Promise<Product>;
 } 

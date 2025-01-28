@@ -127,4 +127,13 @@ export class ProductsRepository implements IProductsRepository {
       throw new Error('Failed to delete product');
     }
   }
+
+  async getProduct(id: number): Promise<Product> {
+    try {
+      const response = await api.get(`/products/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
 } 
