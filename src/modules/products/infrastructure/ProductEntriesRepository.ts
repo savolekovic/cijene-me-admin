@@ -10,12 +10,6 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
         params: {
           search: filters.search,
           product_id: filters.product_id,
-          store_brand_id: filters.store_brand_id,
-          store_location_id: filters.store_location_id,
-          price_min: filters.price_min,
-          price_max: filters.price_max,
-          date_from: filters.date_from,
-          date_to: filters.date_to,
           page: filters.page || 1,
           page_size: filters.page_size || 10,
           sort_field: filters.sort_field,

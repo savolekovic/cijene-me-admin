@@ -21,6 +21,7 @@ interface ProductEntryFormModalProps {
   price: string;
   setPrice: (price: string) => void;
   mode: 'add' | 'edit';
+  disableProductSelection?: boolean;
 }
 
 export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
@@ -40,7 +41,8 @@ export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
   setLocationId,
   price,
   setPrice,
-  mode
+  mode,
+  disableProductSelection
 }) => {
   if (!isOpen) return null;
 
@@ -88,7 +90,7 @@ export const ProductEntryFormModal: React.FC<ProductEntryFormModalProps> = ({
                   value={productId}
                   onChange={(e) => setProductId(Number(e.target.value))}
                   required
-                  disabled={isProcessing || isLoadingDropdownData}
+                  disabled={isProcessing || isLoadingDropdownData || disableProductSelection}
                 >
                   <option value="">
                     {isLoadingDropdownData ? 'Loading products...' : 'Select a product'}

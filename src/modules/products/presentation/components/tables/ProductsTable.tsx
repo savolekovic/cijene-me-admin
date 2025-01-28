@@ -59,13 +59,13 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                 <th style={{ width: '25%', padding: '0.5rem 1rem' }}>Category</th>
                 <th 
                   style={{ width: '12%', padding: '0.5rem 1rem', cursor: 'pointer' }}
-                  className="text-end"
+                  
                   onClick={() => onSort(ProductSortField.CREATED_AT)}
                 >
                   Created At
                   {getSortIcon(ProductSortField.CREATED_AT)}
                 </th>
-                <th style={{ width: '10%', padding: '0.5rem 1rem' }} className="text-end">Actions</th>
+                <th style={{ width: '10%', padding: '0.5rem 1rem' }} >Actions</th>
               </tr>
             </thead>
             <tbody className="border-top-0">
@@ -83,10 +83,10 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                   <td style={{ padding: '0.5rem 1rem' }}>{product.name}</td>
                   <td style={{ padding: '0.5rem 1rem' }}>{product.barcode}</td>
                   <td style={{ padding: '0.5rem 1rem' }}>{product.category.name}</td>
-                  <td className="text-end" style={{ padding: '0.5rem 1rem' }}>
+                  <td style={{ padding: '0.5rem 1rem' }}>
                     {new Date(product.created_at).toLocaleDateString()}
                   </td>
-                  <td className="text-end" style={{ padding: '0.5rem 1rem' }}>
+                  <td style={{ padding: '0.5rem 1rem' }}>
                     <div className="btn-group">
                       <button
                         className="btn btn-sm btn-outline-secondary"
@@ -139,7 +139,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
               <div className="d-flex gap-2">
                 <button
                   className="btn btn-sm btn-outline-secondary flex-grow-1"
-                  onClick={() => navigate(`/dashboard/products/${product.id}/entries`)}
+                  onClick={() => navigate(`/products/${product.id}/entries`)}
                 >
                   View Entries
                 </button>

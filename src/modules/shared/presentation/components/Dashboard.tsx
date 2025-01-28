@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { FaUsers, FaList, FaBox, FaStore, FaMapMarkerAlt, FaReceipt, FaSignOutAlt, FaBars } from 'react-icons/fa';
+import { FaUsers, FaList, FaBox, FaStore, FaMapMarkerAlt, FaSignOutAlt, FaBars } from 'react-icons/fa';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
 
 const Dashboard: React.FC = () => {

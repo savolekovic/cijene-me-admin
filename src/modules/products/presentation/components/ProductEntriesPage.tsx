@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaInbox, FaSearch, FaSpinner, FaSort, FaArrowLeft } from 'react-icons/fa';
+import { FaPlus, FaInbox, FaSearch, FaArrowLeft, FaSort } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/presentation/context/AuthContext';
@@ -31,15 +31,14 @@ const ProductEntriesPage: React.FC = () => {
   // State
   const [error, setError] = useState<string>('');
   const { searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newEntryProductId, setNewEntryProductId] = useState(0);
   const [newEntryStoreBrandId, setNewEntryStoreBrandId] = useState(0);
   const [newEntryStoreLocationId, setNewEntryStoreLocationId] = useState(0);
   const [newEntryPrice, setNewEntryPrice] = useState('');
   const [editingEntry, setEditingEntry] = useState<ProductEntry | null>(null);
-  const [editProductId, setEditProductId] = useState(0);
   const [editStoreBrandId, setEditStoreBrandId] = useState(0);
   const [editStoreLocationId, setEditStoreLocationId] = useState(0);
   const [editPrice, setEditPrice] = useState('');
@@ -52,9 +51,6 @@ const ProductEntriesPage: React.FC = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  // Add dropdown state
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Query for product details
   const { data: product } = useQuery({
@@ -152,7 +148,6 @@ const ProductEntriesPage: React.FC = () => {
 
   useEffect(() => {
     if (editingEntry) {
-      setEditProductId(editingEntry.product.id);
       setEditStoreBrandId(editingEntry.store_location.store_brand.id);
       setEditStoreLocationId(editingEntry.store_location.id);
       setEditPrice(editingEntry.price.toString());
@@ -185,7 +180,7 @@ const ProductEntriesPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: async () => {
       return productEntriesRepository.createProductEntry(
-        Number(newEntryProductId),
+        Number(productId),
         Number(newEntryStoreLocationId),
         Number(newEntryPrice)
       );
@@ -223,7 +218,7 @@ const ProductEntriesPage: React.FC = () => {
       if (!editingEntry) throw new Error('No entry selected for editing');
       return productEntriesRepository.updateProductEntry(
         editingEntry.id,
-        Number(editProductId),
+        Number(productId),
         Number(editStoreLocationId),
         Number(editPrice)
       );
@@ -286,14 +281,12 @@ const ProductEntriesPage: React.FC = () => {
   });
 
   const resetAddForm = () => {
-    setNewEntryProductId(0);
     setNewEntryStoreBrandId(0);
     setNewEntryStoreLocationId(0);
     setNewEntryPrice('');
   };
 
   const resetEditForm = () => {
-    setEditProductId(0);
     setEditStoreBrandId(0);
     setEditStoreLocationId(0);
     setEditPrice('');
@@ -315,8 +308,8 @@ const ProductEntriesPage: React.FC = () => {
 
   const handleEditClick = (entry: ProductEntry) => {
     setEditingEntry(entry);
-    setEditProductId(entry.product.id);
     setEditStoreLocationId(entry.store_location.id);
+    setEditStoreBrandId(entry.store_location.store_brand.id);
     setEditPrice(entry.price.toString());
   };
 
@@ -340,161 +333,134 @@ const ProductEntriesPage: React.FC = () => {
       <div className="d-flex flex-column gap-4">
         {/* Product Header */}
         <div className="d-flex flex-column">
-          <div className="d-flex align-items-center gap-3 mb-3">
-            <button
-              className="btn btn-link text-secondary p-0"
-              onClick={() => navigate('/dashboard/products')}
-            >
-              <FaArrowLeft size={20} />
-            </button>
+          <div className="d-flex justify-content-between align-items-center mb-3">
             <div className="d-flex align-items-center gap-3">
-              <ProductImage 
-                imageUrl={product?.image_url || null} 
-                name={product?.name || ''} 
-                size="large" 
-              />
-              <div>
-                <h1 className="h3 mb-1">{product?.name || 'Loading...'}</h1>
-                <p className="text-muted mb-0">Price History</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Price Statistics */}
-          <div className="row g-3">
-            <div className="col-12 col-sm-6 col-md-3">
-              <div className="card border-0 shadow-sm">
-                <div className="card-body">
-                  <h6 className="text-muted mb-1">Latest Price</h6>
-                  <h4 className="mb-0">
-                    {productEntriesResponse.data[0]?.price 
-                      ? `€${Number(productEntriesResponse.data[0].price).toFixed(2)}` 
-                      : '—'}
-                  </h4>
+              <button
+                className="btn btn-link text-secondary p-0"
+                onClick={() => navigate('/dashboard/products')}
+              >
+                <FaArrowLeft size={20} />
+              </button>
+              <div className="d-flex align-items-center gap-3">
+                <ProductImage 
+                  imageUrl={product?.image_url || null} 
+                  name={product?.name || ''} 
+                  size="large" 
+                />
+                <div>
+                  <h1 className="h3 mb-1">{product?.name || 'Loading...'}</h1>
+                  <p className="text-muted mb-0">Price History</p>
                 </div>
               </div>
             </div>
-            <div className="col-12 col-sm-6 col-md-3">
-              <div className="card border-0 shadow-sm">
-                <div className="card-body">
-                  <h6 className="text-muted mb-1">Lowest Price</h6>
-                  <h4 className="mb-0">
-                    {productEntriesResponse.data.length > 0
-                      ? `€${Math.min(...productEntriesResponse.data.map(entry => Number(entry.price))).toFixed(2)}`
-                      : '—'}
-                  </h4>
-                </div>
-              </div>
-            </div>
-            <div className="col-12 col-sm-6 col-md-3">
-              <div className="card border-0 shadow-sm">
-                <div className="card-body">
-                  <h6 className="text-muted mb-1">Highest Price</h6>
-                  <h4 className="mb-0">
-                    {productEntriesResponse.data.length > 0
-                      ? `€${Math.max(...productEntriesResponse.data.map(entry => Number(entry.price))).toFixed(2)}`
-                      : '—'}
-                  </h4>
-                </div>
-              </div>
-            </div>
-            <div className="col-12 col-sm-6 col-md-3">
-              <div className="card border-0 shadow-sm">
-                <div className="card-body">
-                  <h6 className="text-muted mb-1">Average Price</h6>
-                  <h4 className="mb-0">
-                    {productEntriesResponse.data.length > 0
-                      ? `€${(productEntriesResponse.data.reduce((sum, entry) => sum + Number(entry.price), 0) / productEntriesResponse.data.length).toFixed(2)}`
-                      : '—'}
-                  </h4>
-                </div>
-              </div>
-            </div>
+            <button 
+              className="btn btn-primary d-inline-flex align-items-center gap-2"
+              onClick={() => {
+                setShowAddModal(true);
+              }}
+            >
+              <FaPlus size={14} />
+              <span>Add Entry</span>
+            </button>
           </div>
         </div>
 
         {/* Table Card */}
         <div className="card shadow-sm">
-          <div className="card-header border-0 bg-white py-3">
-            <div className="row g-3 align-items-center">
-              <div className="col-12 col-sm-8 col-lg-4">
-                <div className="input-group">
-                  <span className="input-group-text bg-white border-end-0">
-                    <FaSearch className="text-muted" />
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control border-start-0"
-                    placeholder="Search by store location..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+          <div className="card-header border-0 bg-white py-2">
+            <div className="row g-3 mb-0">
+              <div className="col-12 col-sm-8 col-md-6">
+                <div className="d-flex gap-2">
+                  <div className="input-group flex-grow-1">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search by store location..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <FaSearch 
+                      className="position-absolute text-muted" 
+                      style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}
+                      size={14}
+                    />
+                  </div>
+                  <div className="position-relative">
+                    <button 
+                      id="sort-button"
+                      className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      <FaSort size={14} />
+                      <span className="d-none d-sm-inline">
+                        {sortField === ProductEntrySortField.PRICE 
+                          ? `Price (${sortOrder === OrderDirection.ASC ? '↑' : '↓'})` 
+                          : `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`}
+                      </span>
+                    </button>
+                    {isDropdownOpen && (
+                      <div 
+                        id="sort-dropdown"
+                        className="position-absolute end-0 mt-1 py-1 bg-white rounded shadow-sm" 
+                        style={{ 
+                          zIndex: 1000, 
+                          minWidth: '160px',
+                          border: '1px solid rgba(0,0,0,.15)'
+                        }}
+                      >
+                        <button 
+                          className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                          onClick={() => { 
+                            setSortField(ProductEntrySortField.PRICE);
+                            setSortOrder(OrderDirection.ASC);
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          Price (low to high)
+                        </button>
+                        <button 
+                          className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                          onClick={() => { 
+                            setSortField(ProductEntrySortField.PRICE);
+                            setSortOrder(OrderDirection.DESC);
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          Price (high to low)
+                        </button>
+                        <div className="dropdown-divider my-1"></div>
+                        <button 
+                          className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                          onClick={() => { 
+                            setSortField(ProductEntrySortField.CREATED_AT);
+                            setSortOrder(OrderDirection.DESC);
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          Date (Newest)
+                        </button>
+                        <button 
+                          className="dropdown-item px-3 py-1 text-start w-100 border-0 bg-transparent"
+                          onClick={() => { 
+                            setSortField(ProductEntrySortField.CREATED_AT);
+                            setSortOrder(OrderDirection.ASC);
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          Date (Oldest)
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="col-12 col-sm-4 col-lg-3">
-                <div className="position-relative">
-                  <button 
-                    className="btn btn-outline-secondary d-flex align-items-center gap-2 w-100"
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  >
-                    <FaSort size={14} />
-                    <span>
-                      {sortField === ProductEntrySortField.PRICE 
-                        ? `Price (${sortOrder === OrderDirection.ASC ? '↑' : '↓'})` 
-                        : `Date (${sortOrder === OrderDirection.ASC ? 'Oldest' : 'Newest'})`}
-                    </span>
-                  </button>
-                  {isDropdownOpen && (
-                    <div className="position-absolute start-0 mt-1 w-100 py-1 bg-white rounded shadow-sm" style={{ zIndex: 1000 }}>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100"
-                        onClick={() => { 
-                          setSortField(ProductEntrySortField.PRICE);
-                          setSortOrder(OrderDirection.ASC);
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Price (low to high)
-                      </button>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100"
-                        onClick={() => { 
-                          setSortField(ProductEntrySortField.PRICE);
-                          setSortOrder(OrderDirection.DESC);
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Price (high to low)
-                      </button>
-                      <div className="dropdown-divider"></div>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100"
-                        onClick={() => { 
-                          setSortField(ProductEntrySortField.CREATED_AT);
-                          setSortOrder(OrderDirection.DESC);
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Date (newest)
-                      </button>
-                      <button 
-                        className="dropdown-item px-3 py-1 text-start w-100"
-                        onClick={() => { 
-                          setSortField(ProductEntrySortField.CREATED_AT);
-                          setSortOrder(OrderDirection.ASC);
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        Date (oldest)
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="col-12 col-lg-5">
-                <div className="d-flex justify-content-start justify-content-lg-end align-items-center gap-3">
+              <div className="col-12 col-sm-4 col-md-6">
+                <div className="d-flex justify-content-start justify-content-sm-end align-items-center h-100 gap-2">
                   <select 
-                    className="form-select w-auto"
+                    className="form-select" 
+                    style={{ width: 'auto' }}
                     value={pageSize}
                     onChange={(e) => setPageSize(Number(e.target.value))}
                   >
@@ -502,25 +468,12 @@ const ProductEntriesPage: React.FC = () => {
                     <option value={10}>10 per page</option>
                     <option value={20}>20 per page</option>
                   </select>
-                  <button 
-                    className="btn btn-primary d-inline-flex align-items-center gap-2"
-                    onClick={() => {
-                      setNewEntryProductId(Number(productId));
-                      setShowAddModal(true);
-                    }}
-                  >
-                    <FaPlus size={14} />
-                    <span>Add Entry</span>
-                  </button>
+                  <span className="badge bg-secondary">
+                    Total Entries: {productEntriesResponse.total_count}
+                  </span>
                 </div>
               </div>
             </div>
-            {error && (
-              <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
-                {error}
-                <button type="button" className="btn-close" onClick={() => setError('')} />
-              </div>
-            )}
           </div>
 
           <div className="card-body p-0">
@@ -579,15 +532,24 @@ const ProductEntriesPage: React.FC = () => {
         {/* Modals */}
         <ProductEntryFormModal
           isOpen={showAddModal || !!editingEntry}
-          onClose={() => editingEntry ? setEditingEntry(null) : setShowAddModal(false)}
+          onClose={() => {
+            if (editingEntry) {
+              setEditingEntry(null);
+              resetEditForm();
+            } else {
+              setShowAddModal(false);
+              resetAddForm();
+            }
+          }}
           onSubmit={editingEntry ? handleEditSubmit : handleCreateEntry}
           products={products}
           storeBrands={storeBrands}
           storeLocations={storeLocations}
           isLoadingDropdownData={isLoadingDropdownData}
           isProcessing={editingEntry ? updateMutation.isPending : createMutation.isPending}
-          productId={editingEntry ? editProductId : newEntryProductId}
-          setProductId={editingEntry ? setEditProductId : setNewEntryProductId}
+          productId={Number(productId)}
+          setProductId={() => {}}
+          disableProductSelection={true}
           storeBrandId={editingEntry ? editStoreBrandId : newEntryStoreBrandId}
           setStoreBrandId={editingEntry ? setEditStoreBrandId : setNewEntryStoreBrandId}
           locationId={editingEntry ? editStoreLocationId : newEntryStoreLocationId}
