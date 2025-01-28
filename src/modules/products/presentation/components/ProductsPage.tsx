@@ -20,7 +20,7 @@ const categoriesRepository = new CategoriesRepository();
 
 const ProductsPage: React.FC = () => {
   const [error, setError] = useState<string>('');
-  const { searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
+  const {searchQuery, debouncedSearchQuery, setSearchQuery } = useDebounceSearch();
   const [sortField, setSortField] = useState<ProductSortField>(ProductSortField.NAME);
   const [sortOrder, setSortOrder] = useState<OrderDirection>(OrderDirection.ASC);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -421,12 +421,6 @@ const ProductsPage: React.FC = () => {
               </div>
             </div>
           </div>
-          {error && (
-            <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
-              {error}
-              <button type="button" className="btn-close" onClick={() => setError('')} />
-            </div>
-          )}
         </div>
         <div className="card-body p-0">
           {queryLoading ? (
@@ -488,6 +482,7 @@ const ProductsPage: React.FC = () => {
         onClose={() => {
           setShowAddModal(false);
           resetAddForm();
+          setError('');
         }}
         onSubmit={handleCreateProduct}
         categories={categories as CategoryDropdownItem[]}
@@ -501,6 +496,7 @@ const ProductsPage: React.FC = () => {
         setCategoryId={setNewProductCategoryId}
         image={newProductImage}
         setImage={setNewProductImage}
+        error={error}
       />
 
       <ProductFormModal
@@ -509,6 +505,7 @@ const ProductsPage: React.FC = () => {
         onClose={() => {
           setEditingProduct(null);
           resetEditForm();
+          setError('');
         }}
         onSubmit={handleEditSubmit}
         categories={categories as CategoryDropdownItem[]}
@@ -522,6 +519,7 @@ const ProductsPage: React.FC = () => {
         setCategoryId={setEditCategoryId}
         image={editImage}
         setImage={setEditImage}
+        error={error}
       />
 
       <DeleteConfirmationModal 
@@ -529,8 +527,12 @@ const ProductsPage: React.FC = () => {
         title="Delete Product"
         message="Are you sure you want to delete this product?"
         isDeleting={deleteMutation.isPending}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setError('');
+        }}
         onConfirm={handleDeleteConfirm}
+        error={error}
       />
     </div>
   );

@@ -19,6 +19,7 @@ interface ProductFormModalProps {
   setImage: (image: File | null) => void;
   categoryId: number;
   setCategoryId: (id: number) => void;
+  error?: string;
 }
 
 export const ProductFormModal: React.FC<ProductFormModalProps> = ({
@@ -36,7 +37,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   image,
   setImage,
   categoryId,
-  setCategoryId
+  setCategoryId,
+  error
 }) => {
   const [nameError, setNameError] = useState<string>('');
   const [barcodeError, setBarcodeError] = useState<string>('');
@@ -113,6 +115,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               />
             </div>
             <div className="modal-body">
+              {error && (
+                <div className="alert alert-danger mb-3">
+                  {error}
+                </div>
+              )}
               <div className="mb-3">
                 <label htmlFor="name" className="form-label">Product Name</label>
                 <input
@@ -222,7 +229,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   !!imageError || 
                   !name.trim() || 
                   !barcode.trim() || 
-                  !image || 
+                  (mode === 'add' && !image) ||
                   !categoryId
                 }
               >
