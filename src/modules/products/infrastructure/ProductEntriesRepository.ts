@@ -1,25 +1,43 @@
 import { api } from '../../../services/api';
-import { IProductEntriesRepository, ProductEntry, ProductEntryFilters } from '../domain/interfaces/IProductEntriesRepository';
+import { IProductEntriesRepository, ProductEntry } from '../domain/interfaces/IProductEntriesRepository';
 import { PaginatedResponse } from '../../shared/types/PaginatedResponse';
 import { OrderDirection, ProductEntrySortField } from '../../shared/types/sorting';
+import axios from 'axios';
 
 export class ProductEntriesRepository implements IProductEntriesRepository {
-  async getAllProductEntries(filters: ProductEntryFilters): Promise<PaginatedResponse<ProductEntry>> {
+  async getAllProductEntries(
+    search?: string,
+    product_id?: number,
+    page: number = 1,
+    page_size: number = 10,
+    sort_field?: ProductEntrySortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<ProductEntry>> {
     try {
       const response = await api.get('/product-entries', {
         params: {
-          search: filters.search,
-          product_id: filters.product_id,
-          page: filters.page || 1,
-          page_size: filters.page_size || 10,
-          sort_field: filters.sort_field,
-          sort_order: filters.sort_order
+          search: search || '',
+          product_id,
+          page,
+          page_size,
+          order_by: sort_field,
+          order_direction: sort_order
+        },
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
-
       return response.data;
     } catch (error) {
-      throw error;
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access. Please login again.');
+        }
+        throw new Error(error.response?.data?.message || 'Failed to fetch product entries');
+      }
+      throw new Error('Failed to fetch product entries');
     }
   }
 
@@ -35,11 +53,14 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
         price
       });
       return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error('Unauthorized');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access. Please login again.');
+        }
+        throw new Error(error.response?.data?.message || 'Failed to create product entry');
       }
-      throw new Error(error.response?.data?.message || 'Failed to create product entry');
+      throw new Error('Failed to create product entry');
     }
   }
 
@@ -56,22 +77,28 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
         price
       });
       return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error('Unauthorized');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access. Please login again.');
+        }
+        throw new Error(error.response?.data?.message || 'Failed to update product entry');
       }
-      throw new Error(error.response?.data?.message || 'Failed to update product entry');
+      throw new Error('Failed to update product entry');
     }
   }
 
   async deleteProductEntry(id: number): Promise<void> {
     try {
       await api.delete(`/product-entries/${id}`);
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error('Unauthorized');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access. Please login again.');
+        }
+        throw new Error(error.response?.data?.message || 'Failed to delete product entry');
       }
-      throw new Error(error.response?.data?.message || 'Failed to delete product entry');
+      throw new Error('Failed to delete product entry');
     }
   }
 } 

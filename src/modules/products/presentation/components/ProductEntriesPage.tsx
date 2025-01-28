@@ -78,14 +78,14 @@ const ProductEntriesPage: React.FC = () => {
     queryKey: ['productEntries', productId, debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
     queryFn: async () => {
       try {
-        return await productEntriesRepository.getAllProductEntries({
-          search: debouncedSearchQuery,
-          product_id: Number(productId),
-          page: currentPage,
-          page_size: pageSize,
-          sort_field: sortField,
-          sort_order: sortOrder
-        });
+        return await productEntriesRepository.getAllProductEntries(
+          debouncedSearchQuery,
+          Number(productId),
+          currentPage,
+          pageSize,
+          sortField,
+          sortOrder
+        );
       } catch (err) {
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           logout();

@@ -1,21 +1,6 @@
 import { PaginatedResponse } from "../../../shared/types/PaginatedResponse";
 import { OrderDirection, ProductEntrySortField } from "../../../shared/types/sorting";
 
-export interface ProductEntryFilters {
-  search?: string;
-  product_id?: number;
-  store_brand_id?: number;
-  store_location_id?: number;
-  price_min?: number;
-  price_max?: number;
-  date_from?: string;
-  date_to?: string;
-  page?: number;
-  page_size?: number;
-  sort_field?: ProductEntrySortField;
-  sort_order?: OrderDirection;
-}
-
 export interface ProductEntry {
   id: number;
   product: {
@@ -36,17 +21,27 @@ export interface ProductEntry {
 }
 
 export interface IProductEntriesRepository {
-  getAllProductEntries(filters: ProductEntryFilters): Promise<PaginatedResponse<ProductEntry>>;
+  getAllProductEntries(
+    search?: string,
+    product_id?: number,
+    page?: number,
+    page_size?: number,
+    sort_field?: ProductEntrySortField,
+    sort_order?: OrderDirection
+  ): Promise<PaginatedResponse<ProductEntry>>;
+  
   createProductEntry(
     product_id: number,
     store_location_id: number,
     price: number
   ): Promise<ProductEntry>;
+  
   updateProductEntry(
     id: number,
     product_id: number,
     store_location_id: number,
     price: number
   ): Promise<ProductEntry>;
+  
   deleteProductEntry(id: number): Promise<void>;
 } 
