@@ -25,7 +25,7 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
       
       console.log('Request params:', params);
       
-      const response = await api.get('/product-entries', { params });
+      const response = await api.get('/product-entries/', { params });
       
       console.log('Response data:', response.data);
       
@@ -48,7 +48,7 @@ export class ProductEntriesRepository implements IProductEntriesRepository {
     price: number
   ): Promise<ProductEntry> {
     try {
-      const response = await api.post('/product-entries', {
+      const response = await api.post('/product-entries/', {
         product_id,
         store_location_id,
         price

@@ -177,7 +177,7 @@ const ProductEntriesPage: React.FC = () => {
   const isLoadingDropdownData = isProductsLoading || isStoreBrandsLoading || isLocationsLoading;
 
   // Mutation for creating entries
-  const createMutation = useMutation({
+  const createMutation = useMutation<ProductEntry, Error>({
     mutationFn: async () => {
       return productEntriesRepository.createProductEntry(
         Number(productId),
@@ -185,19 +185,29 @@ const ProductEntriesPage: React.FC = () => {
         Number(newEntryPrice)
       );
     },
-    onSuccess: (newEntry) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['productEntries'] });
+    onSuccess: (response) => {
+      const storeLocation = storeLocations.find(loc => loc.id === Number(newEntryStoreLocationId));
+      const storeBrand = storeBrands.find(brand => brand.id === Number(newEntryStoreBrandId));
       
-      // Optimistically update the cache
+      const entryWithLocation: ProductEntry = {
+        ...response,
+        store_location: {
+          id: storeLocation!.id,
+          address: storeLocation!.address,
+          store_brand: {
+            id: storeBrand!.id,
+            name: storeBrand!.name
+          }
+        }
+      };
+
       queryClient.setQueryData<PaginatedResponse<ProductEntry>>(
-        ['productEntries', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
+        ['productEntries', productId, debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder],
         (oldData) => {
-          if (!oldData) return { total_count: 1, data: [newEntry] };
+          if (!oldData) return { total_count: 1, data: [entryWithLocation] };
           return {
-            ...oldData,
             total_count: oldData.total_count + 1,
-            data: [...oldData.data, newEntry]
+            data: [entryWithLocation, ...oldData.data]
           };
         }
       );
