@@ -85,8 +85,8 @@ const UsersPage: React.FC = () => {
     mutationFn: ({ userId, newRole }) => 
       usersRepository.changeRole(userId, newRole),
     onSuccess: (updatedUser) => {
-      queryClient.setQueryData(['users', debouncedSearchQuery, currentPage, pageSize], (oldData: any) => {
-        if (!oldData) return { total_count: oldData.total_count, data: [updatedUser] };
+      queryClient.setQueryData(['users', debouncedSearchQuery, currentPage, pageSize, sortField, sortOrder], (oldData: any) => {
+        if (!oldData) return { total_count: 0, data: [] };
         return {
           total_count: oldData.total_count,
           data: oldData.data.map((user: User) => user.id === updatedUser.id ? updatedUser : user)
